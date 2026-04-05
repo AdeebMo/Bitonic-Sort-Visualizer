@@ -136,6 +136,12 @@
 
       <main>
         <section class="panel network-area" aria-label="Network visualization">
+          <div class="legend-strip" aria-label="Network legend">
+            <div class="legend-item"><span class="legend-chip legend-chip-primary"></span><span>Comparator states</span></div>
+            <div class="legend-item"><span class="legend-chip legend-chip-secondary"></span><span>Value states</span></div>
+            <div class="legend-item"><span class="legend-chip legend-chip-swap"></span><span>Swap / no-swap</span></div>
+            <div class="legend-item"><span class="legend-chip legend-chip-key"></span><span>Network markers</span></div>
+          </div>
           <div class="action-strip">
             <strong>Current action</strong>
             <span>Waiting to build network</span>
@@ -146,12 +152,7 @@
         </section>
 
         <section class="panel panel-list" aria-label="Visualization details">
-          <div class="feature-card">
-            <h3 class="panel-heading">Legend</h3>
-            <div class="placeholder-box">Icons and colors will explain the comparator states.</div>
-          </div>
-
-          <div class="feature-card">
+          <div class="feature-card history-card">
             <h3 class="panel-heading">History</h3>
             <div class="placeholder-box">A scrollable table of step history will be shown here.</div>
           </div>
