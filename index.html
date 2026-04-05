@@ -103,7 +103,7 @@
 
           <div style="margin-top: 10px;">
             <label class="control-label" for="speed-range">Speed</label>
-            <input id="speed-range" type="range" min="1" max="5" value="3">
+            <input id="speed-range" type="range" min="1" max="5" value="1">
           </div>
 
           <div>
@@ -137,14 +137,17 @@
       <main>
         <section class="panel network-area" aria-label="Network visualization">
           <div class="legend-strip" aria-label="Network legend">
-            <div class="legend-item"><span class="legend-chip legend-chip-primary"></span><span>Comparator states</span></div>
-            <div class="legend-item"><span class="legend-chip legend-chip-secondary"></span><span>Value states</span></div>
-            <div class="legend-item"><span class="legend-chip legend-chip-swap"></span><span>Swap / no-swap</span></div>
-            <div class="legend-item"><span class="legend-chip legend-chip-key"></span><span>Network markers</span></div>
+            <div class="legend-item"><span class="legend-chip legend-chip-primary"></span><span>Inactive Comparator</span></div>
+            <div class="legend-item"><span class="legend-chip legend-chip-secondary"></span><span>Active Comparator</span></div>
+            <div class="legend-item"><span class="legend-chip legend-chip-swap"></span><span>Completed Comparator</span></div>
+            <div class="legend-item"><span class="legend-chip legend-chip-key"></span><span>Compared Values</span></div>
           </div>
           <div class="action-strip">
             <strong>Current action</strong>
-            <span>Waiting to build network</span>
+            <span id="action-text">Waiting for input.</span>
+            <div class="speed-display">
+              <span>Speed: <span id="speed-value">3x</span></span>
+            </div>
           </div>
           <div class="network-visual">
             <div class="placeholder-box">Network visualization will appear here.</div>
@@ -153,8 +156,24 @@
 
         <section class="panel panel-list" aria-label="Visualization details">
           <div class="feature-card history-card">
-            <h3 class="panel-heading">History</h3>
-            <div class="placeholder-box">A scrollable table of step history will be shown here.</div>
+            <h3 class="panel-heading">Step History</h3>
+            <div class="history-container">
+              <table class="history-table" id="history-table">
+                <thead>
+                  <tr>
+                    <th>Step</th>
+                    <th>Indices</th>
+                    <th>Values</th>
+                    <th>Direction</th>
+                    <th>Action</th>
+                    <th>Result</th>
+                  </tr>
+                </thead>
+                <tbody id="history-body">
+                  <!-- Steps will be added here -->
+                </tbody>
+              </table>
+            </div>
           </div>
         </section>
       </main>
