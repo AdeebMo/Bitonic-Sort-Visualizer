@@ -16,22 +16,66 @@
     <section class="intro-grid" aria-label="Algorithm overview">
       <div class="feature-card">
         <h3 class="panel-heading">Overview</h3>
-        <div class="placeholder-box">High-level concept summaries for bitonic sorting, data-oblivious networks, and why this tool exists.</div>
+        <div class="card-body">
+          <p>Bitonic sort is a sorting network: a fixed sequence of compare-and-swap operations that does not depend on the actual input values. It works by building bitonic sequences, then merging them with the same network pattern for every array of the same size.</p>
+          <ul class="mini-list">
+            <li><strong>Fixed network:</strong> comparator positions are defined before runtime.</li>
+            <li><strong>Bitonic sequence:</strong> a subsequence that rises then falls, or can be rotated to that shape.</li>
+            <li><strong>Data-oblivious:</strong> the same comparator structure works for all inputs of a given length.</li>
+          </ul>
+        </div>
       </div>
 
       <div class="feature-card">
         <h3 class="panel-heading">Explanation</h3>
-        <div class="placeholder-box">A clear explanation of how the bitonic sorting network works and how to read the visualization.</div>
+        <div class="card-body">
+          <p>A bitonic sequence is built from two sorted halves: one ascending and one descending. Bitonic sort recursively creates these halves so that the combined block forms a bitonic pattern before merge.</p>
+          <p>Bitonic merge then compares elements at fixed distances across the midpoint and moves larger values one way and smaller values the other. Every compare-exchange step is predetermined, which is why this method is useful for teaching parallel network behavior.</p>
+          <ol class="mini-list">
+            <li><strong>Build:</strong> sort the first half upward and the second half downward.</li>
+            <li><strong>Merge:</strong> compare mirrored positions across the midpoint in the target direction.</li>
+            <li><strong>Repeat:</strong> recursively merge smaller bitonic segments until the block is ordered.</li>
+          </ol>
+        </div>
       </div>
 
       <div class="feature-card">
         <h3 class="panel-heading">Pseudocode</h3>
-        <div class="placeholder-box">The algorithm pseudocode will be shown here with line-by-line teaching support.</div>
+        <div class="card-body">
+          <pre class="code-block"><code>1  procedure bitonicSort(lo, n, dir)
+2      if n <= 1 return
+3      k := n / 2
+4      bitonicSort(lo, k, ASC)
+5      bitonicSort(lo + k, k, DESC)
+6      bitonicMerge(lo, n, dir)
+
+7  procedure bitonicMerge(lo, n, dir)
+8      if n <= 1 return
+9      k := n / 2
+10     for i from lo to lo + n - k - 1
+11         compareAndSwap(i, i + k, dir)
+12     bitonicMerge(lo, k, dir)
+13     bitonicMerge(lo + k, k, dir)
+
+14 procedure compareAndSwap(i, j, dir)
+15     if (dir = ASC and value[i] > value[j]) or
+16        (dir = DESC and value[i] < value[j]) then
+17         swap value[i] and value[j]</code></pre>
+          <div class="compact-note">dir = ASC or DESC · lo = starting index · n = length of subarray</div>
+        </div>
       </div>
 
       <div class="feature-card">
         <h3 class="panel-heading">Worked example</h3>
-        <div class="placeholder-box">A simple example run-through that shows how values move through the bitonic network.</div>
+        <div class="card-body">
+          <p>Example input: [3, 7, 4, 8, 6, 2, 1, 5]. The network first arranges two halves in opposite directions, then merges them into order.</p>
+          <div class="phase-list">
+            <div><strong>Input:</strong> [3, 7, 4, 8, 6, 2, 1, 5]</div>
+            <div><strong>Build bitonic halves:</strong> left half upward [3, 4, 7, 8], right half downward [6, 5, 2, 1]</div>
+            <div><strong>Bitonic merge:</strong> compare fixed cross-block pairs and recursively reorder into one sorted block.</div>
+            <div><strong>Final sorted order:</strong> [1, 2, 3, 4, 5, 6, 7, 8]</div>
+          </div>
+        </div>
       </div>
     </section>
 
