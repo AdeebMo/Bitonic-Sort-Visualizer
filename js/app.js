@@ -6,6 +6,6 @@
 document.addEventListener('DOMContentLoaded', function () {
   var statusText = document.getElementById('status-value');
   if (statusText) {
-    statusText.textContent = 'idle';
+    statusText.textContent = 'Idle';
   }
 });

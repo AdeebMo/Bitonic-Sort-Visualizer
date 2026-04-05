@@ -130,7 +130,7 @@ button {
 
 .control-group {
   display: grid;
-  gap: var(--space-5);
+  gap: var(--space-1);
 }
 
 .control-label {
@@ -426,6 +426,7 @@ input[type="range"]::-moz-range-thumb {
 
 .status-list {
   display: grid;
+  margin-top: 10px;
   grid-template-columns: repeat(3, 1fr);
   gap: 0;
   background: rgba(255,255,255,0.04);
