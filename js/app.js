@@ -106,6 +106,35 @@ function updateProgress() {
   }
 }
 
+function getCurrentStep() {
+  if (appState.currentStepIndex < 0 || appState.currentStepIndex >= appState.steps.length) {
+    return null;
+  }
+  return appState.steps[appState.currentStepIndex];
+}
+
+function getValuePillWidth(values) {
+  var maxChars = 1;
+  for (var i = 0; i < values.length; i++) {
+    maxChars = Math.max(maxChars, String(values[i]).length);
+  }
+  return Math.max(64, maxChars * 11 + 28);
+}
+
+function getNetworkVisualEl() {
+  if (!dom.networkVisual) {
+    dom.networkVisual = document.querySelector('.network-visual');
+  }
+  return dom.networkVisual;
+}
+
+function getHistoryBodyEl() {
+  if (!dom.historyBody) {
+    dom.historyBody = document.getElementById('history-body');
+  }
+  return dom.historyBody;
+}
+
 function updatePresetSelection() {
   dom.presetButtons.forEach(function(btn) {
     btn.classList.toggle('is-selected', btn.getAttribute('data-preset') === appState.selectedPreset);
@@ -296,6 +325,7 @@ function handleSpeedChange() {
 // Bitonic network generation
 function generateBitonicNetwork(size) {
   var stages = [];
+  var stepIndex = 0;
   var passNumber = 1;
   for (var k = 2; k <= size; k = 2 * k) {
     for (var j = k / 2; j > 0; j = j / 2) {
@@ -303,11 +333,19 @@ function generateBitonicNetwork(size) {
       for (var i = 0; i < size; i++) {
         var l = i ^ j;
         if (l > i) {
-          stageComparators.push([i, l]);
+          stageComparators.push({
+            left: i,
+            right: l,
+            dir: (i & k) === 0 ? 'ASC' : 'DESC',
+            stepIndex: stepIndex++
+          });
         }
       }
       stages.push({
+        passIndex: stages.length,
         label: 'P' + passNumber++,
+        gap: j,
+        blockSize: k,
         comparators: stageComparators
       });
     }
@@ -320,63 +358,93 @@ function generateBitonicNetwork(size) {
 function generateSteps(numbers) {
   var steps = [];
   var working = numbers.slice();
-  var n = numbers.length;
-  var stepIndex = 0;
-  for (var k = 2; k <= n; k = 2 * k) {
-    for (var j = k / 2; j > 0; j = j / 2) {
-      for (var i = 0; i < n; i++) {
-        var l = i ^ j;
-        if (l > i) {
-          var before = working.slice();
-          var shouldSwap = false;
-          if ((i & k) == 0) {
-            if (working[i] > working[l]) shouldSwap = true;
-          } else {
-            if (working[i] < working[l]) shouldSwap = true;
-          }
-          if (shouldSwap) {
-            var temp = working[i];
-            working[i] = working[l];
-            working[l] = temp;
-          }
-          var after = working.slice();
-          var dir = (i & k) == 0 ? 'ASC' : 'DESC';
-          var leadingValue = dir === 'ASC' ? 'smaller' : 'larger';
-          steps.push({
-            index: stepIndex++,
-            i: i,
-            j: l,
-            dir: dir,
-            beforeValues: before,
-            afterValues: after,
-            swapped: shouldSwap,
-            actionText: shouldSwap ?
-              'Swapped ' + before[i] + ' and ' + before[l] + ' because ' + dir.toLowerCase() + ' order requires the ' + leadingValue + ' value first.' :
-              'No swap needed. Values already satisfy ' + dir.toLowerCase() + ' order.'
-          });
-        }
+  var network = generateBitonicNetwork(numbers.length);
+  network.stages.forEach(function(stage) {
+    stage.comparators.forEach(function(comp) {
+      var before = working.slice();
+      var leftValue = working[comp.left];
+      var rightValue = working[comp.right];
+      var shouldSwap = comp.dir === 'ASC' ? leftValue > rightValue : leftValue < rightValue;
+
+      if (shouldSwap) {
+        var temp = working[comp.left];
+        working[comp.left] = working[comp.right];
+        working[comp.right] = temp;
       }
-    }
-  }
+
+      var pairText = before[comp.left] + ' vs ' + before[comp.right];
+      var orderLabel = comp.dir === 'ASC' ? 'ascending' : 'descending';
+      var after = working.slice();
+
+      steps.push({
+        index: comp.stepIndex,
+        passIndex: stage.passIndex,
+        passLabel: stage.label,
+        gap: stage.gap,
+        blockSize: stage.blockSize,
+        i: comp.left,
+        j: comp.right,
+        dir: comp.dir,
+        beforeValues: before,
+        afterValues: after,
+        swapped: shouldSwap,
+        comparedValues: pairText,
+        actionLabel: 'Compare for ' + comp.dir,
+        resultLabel: shouldSwap ? 'Swapped' : 'Kept Order',
+        actionText: shouldSwap ?
+          stage.label + ' - Swap wires ' + comp.left + ' and ' + comp.right + ' (' + pairText + ') for ' + orderLabel + ' order.' :
+          stage.label + ' - Keep wires ' + comp.left + ' and ' + comp.right + ' (' + pairText + ') for ' + orderLabel + ' order.'
+      });
+    });
+  });
   return steps;
 }
 
 // Network rendering
 function renderNetwork() {
+  var networkVisual = getNetworkVisualEl();
+  if (!networkVisual) {
+    return;
+  }
+
   if (!appState.isLoaded) {
     showNetworkPlaceholder();
     return;
   }
 
   var network = generateBitonicNetwork(appState.inputSize);
-  var wireSpacing = Math.max(34, Math.floor(420 / appState.inputSize));
-  var stageSpacing = network.stages.length > 8 ? 84 : 96;
-  var labelWidth = 72;
-  var rightGutter = 96;
-  var stageLabelHeight = 36;
-  var stageStartX = labelWidth + 12;
-  var totalWidth = stageStartX + network.stages.length * stageSpacing + rightGutter;
-  var totalHeight = stageLabelHeight + appState.inputSize * wireSpacing + 24;
+  var stages = [];
+  var values = appState.workingNumbers && appState.workingNumbers.length ?
+    appState.workingNumbers.slice() :
+    appState.numbersLoaded.slice();
+
+  if (!appState.inputSize || values.length !== appState.inputSize) {
+    showNetworkPlaceholder();
+    return;
+  }
+
+  for (var stageIndex = 0; stageIndex < network.stages.length; stageIndex++) {
+    if (network.stages[stageIndex] && network.stages[stageIndex].comparators && network.stages[stageIndex].comparators.length) {
+      stages.push(network.stages[stageIndex]);
+    }
+  }
+
+  if (stages.length === 0) {
+    showNetworkPlaceholder();
+    return;
+  }
+
+  var currentStep = getCurrentStep();
+  var wireSpacing = Math.max(34, Math.min(48, Math.floor(560 / appState.inputSize)));
+  var stageSpacing = stages.length > 10 ? 86 : stages.length > 7 ? 94 : 104;
+  var leftRail = 84;
+  var stageStartX = leftRail;
+  var valuePillWidth = getValuePillWidth(values);
+  var rightRail = valuePillWidth + 34;
+  var wireEndX = stageStartX + stages.length * stageSpacing - 24;
+  var totalWidth = wireEndX + rightRail;
+  var stageLabelHeight = 62;
+  var totalHeight = stageLabelHeight + appState.inputSize * wireSpacing + 26;
   var svg = createSvgElement('svg', {
     class: 'network-svg',
     width: totalWidth,
@@ -385,43 +453,93 @@ function renderNetwork() {
 
   svg.setAttribute('viewBox', '0 0 ' + totalWidth + ' ' + totalHeight);
 
-  // Draw horizontal wires with labels and values
+  // Draw row backgrounds, horizontal wires, labels, and values
   for (var i = 0; i < appState.inputSize; i++) {
     var y = stageLabelHeight + i * wireSpacing + wireSpacing / 2;
+    var isCompared = currentStep && (currentStep.i === i || currentStep.j === i);
+    var rowBand = createSvgElement('rect', {
+      class: 'network-row-band' + (i % 2 === 0 ? '' : ' is-odd'),
+      x: stageStartX - 10,
+      y: y - (wireSpacing / 2) + 6,
+      width: wireEndX - stageStartX + 20,
+      height: wireSpacing - 12,
+      rx: 14,
+      ry: 14
+    });
+    svg.appendChild(rowBand);
+
     var line = createSvgElement('line', {
-      class: 'network-wire',
+      class: 'network-wire' + (isCompared ? ' active' : ''),
+      id: 'wire-' + i,
       x1: stageStartX,
       y1: y,
-      x2: totalWidth - rightGutter,
+      x2: wireEndX,
       y2: y
     });
     svg.appendChild(line);
 
+    var labelGroup = createSvgElement('g', { class: 'network-index-pill' });
+    var labelRect = createSvgElement('rect', {
+      class: 'network-index-pill-bg',
+      x: 18,
+      y: y - 14,
+      width: 40,
+      height: 28,
+      rx: 14,
+      ry: 14
+    });
+    labelGroup.appendChild(labelRect);
+
     var text = createSvgElement('text', {
-      class: 'network-wire-label',
-      x: labelWidth - 6,
+      class: 'network-index-pill-text',
+      x: 38,
       y: y + 4,
       textContent: i
     });
-    svg.appendChild(text);
+    labelGroup.appendChild(text);
+    svg.appendChild(labelGroup);
+
+    var valueGroup = createSvgElement('g', { class: 'network-value-pill' });
+    var valueRect = createSvgElement('rect', {
+      class: 'network-value-pill-bg' + (isCompared ? ' compared' : ''),
+      id: 'value-pill-bg-' + i,
+      x: wireEndX + 12,
+      y: y - 16,
+      width: valuePillWidth,
+      height: 32,
+      rx: 16,
+      ry: 16
+    });
+    valueGroup.appendChild(valueRect);
 
     var valueText = createSvgElement('text', {
-      class: 'network-value-text',
+      class: 'network-value-pill-text' + (isCompared ? ' compared' : ''),
       id: 'value-text-' + i,
-      x: totalWidth - 18,
+      x: wireEndX + 12 + valuePillWidth / 2,
       y: y + 4,
-      textContent: appState.workingNumbers[i]
+      textContent: values[i]
     });
-    svg.appendChild(valueText);
+    valueGroup.appendChild(valueText);
+    svg.appendChild(valueGroup);
   }
 
   // Draw stages with comparators
   var xOffset = stageStartX;
-  var comparatorIndex = 0;
-  network.stages.forEach(function(stage) {
+  stages.forEach(function(stage) {
     var stageCenter = xOffset + stageSpacing / 2;
+    var lastComparator = stage.comparators[stage.comparators.length - 1];
+    var stageLastStep = lastComparator ? lastComparator.stepIndex : -1;
+    var stageStateClass = '';
+    if (currentStep) {
+      if (currentStep.passIndex === stage.passIndex) {
+        stageStateClass = ' active';
+      } else if (appState.currentStepIndex > stageLastStep) {
+        stageStateClass = ' completed';
+      }
+    }
+
     var rect = createSvgElement('rect', {
-      class: 'network-stage-band',
+      class: 'network-stage-band' + stageStateClass,
       x: xOffset,
       y: 8,
       width: stageSpacing,
@@ -434,16 +552,27 @@ function renderNetwork() {
     var text = createSvgElement('text', {
       class: 'network-stage-label',
       x: stageCenter,
-      y: 24,
+      y: 26,
       textContent: stage.label
     });
     svg.appendChild(text);
 
-    stage.comparators.forEach(function(comp) {
-      var y1 = stageLabelHeight + comp[0] * wireSpacing + wireSpacing / 2;
-      var y2 = stageLabelHeight + comp[1] * wireSpacing + wireSpacing / 2;
+    var meta = createSvgElement('text', {
+      class: 'network-stage-meta',
+      x: stageCenter,
+      y: 42,
+      textContent: 'Gap ' + stage.gap
+    });
+    svg.appendChild(meta);
 
-      var g = createSvgElement('g', { class: 'network-comparator', id: 'comparator-' + comparatorIndex });
+    stage.comparators.forEach(function(comp) {
+      var y1 = stageLabelHeight + comp.left * wireSpacing + wireSpacing / 2;
+      var y2 = stageLabelHeight + comp.right * wireSpacing + wireSpacing / 2;
+
+      var g = createSvgElement('g', {
+        class: 'network-comparator direction-' + comp.dir.toLowerCase(),
+        id: 'comparator-' + comp.stepIndex
+      });
 
       var line = createSvgElement('line', {
         class: 'network-comparator-line',
@@ -471,15 +600,13 @@ function renderNetwork() {
       g.appendChild(circle2);
 
       svg.appendChild(g);
-      comparatorIndex++;
     });
 
     xOffset += stageSpacing;
   });
 
   clearNetworkVisual();
-  dom.networkVisual.appendChild(svg);
-  renderValues();
+  networkVisual.appendChild(svg);
   updateComparatorStates();
 }
 
@@ -496,52 +623,40 @@ function createSvgElement(tag, attrs) {
 }
 
 function clearNetworkVisual() {
-  if (dom.networkVisual) {
-    dom.networkVisual.innerHTML = '';
-  }
-}
-
-function renderValues() {
-  for (var i = 0; i < appState.workingNumbers.length; i++) {
-    var textEl = document.getElementById('value-text-' + i);
-    if (textEl) {
-      textEl.textContent = appState.workingNumbers[i];
-      textEl.classList.remove('compared', 'swapped');
-      if (appState.currentStepIndex >= 0 && appState.steps[appState.currentStepIndex]) {
-        var step = appState.steps[appState.currentStepIndex];
-        if (step.i === i || step.j === i) {
-          textEl.classList.add('compared');
-          if (step.swapped) {
-            textEl.classList.add('swapped');
-          }
-        }
-      }
-    }
+  var networkVisual = getNetworkVisualEl();
+  if (networkVisual) {
+    networkVisual.innerHTML = '';
   }
 }
 
 function showNetworkPlaceholder() {
+  var networkVisual = getNetworkVisualEl();
+  if (!networkVisual) {
+    return;
+  }
+
   clearNetworkVisual();
   var placeholder = document.createElement('div');
   placeholder.className = 'placeholder-box';
   placeholder.textContent = 'Load a valid power-of-two list to generate the comparator network and inspect each pass.';
-  dom.networkVisual.appendChild(placeholder);
+  networkVisual.appendChild(placeholder);
 }
 
 function renderHistory() {
-  if (!dom.historyBody) return;
-  dom.historyBody.innerHTML = '';
+  var historyBody = getHistoryBodyEl();
+  if (!historyBody) return;
+  historyBody.innerHTML = '';
   if (appState.steps.length === 0) {
     var row = document.createElement('tr');
     row.innerHTML = '<td colspan="6" class="cell-muted">No comparator passes yet. Build steps to populate the trace.</td>';
-    dom.historyBody.appendChild(row);
+    historyBody.appendChild(row);
     return;
   }
   appState.steps.forEach(function(step, index) {
     var row = document.createElement('tr');
-    var comparedValues = step.beforeValues[step.i] + ' vs ' + step.beforeValues[step.j];
-    var actionLabel = step.swapped ? 'Compare + swap' : 'Compare only';
-    var resultLabel = step.swapped ? 'Swapped' : 'Kept order';
+    var comparedValues = step.comparedValues;
+    var actionLabel = step.passLabel + ' - ' + step.actionLabel;
+    var resultLabel = step.resultLabel;
     var resultClass = step.swapped ? 'swap-yes' : 'swap-no';
     if (index === appState.currentStepIndex) {
       row.className = 'current-step';
@@ -553,7 +668,7 @@ function renderHistory() {
       '<td>' + step.dir + '</td>' +
       '<td>' + actionLabel + '</td>' +
       '<td><span class="result-pill ' + resultClass + '">' + resultLabel + '</span></td>';
-    dom.historyBody.appendChild(row);
+    historyBody.appendChild(row);
   });
 }
 
@@ -563,8 +678,10 @@ function updateComparatorStates() {
     comp.classList.remove('active', 'completed');
   });
 
-  if (appState.currentStepIndex >= 0 && appState.currentStepIndex < appState.steps.length) {
-    var step = appState.steps[appState.currentStepIndex];
+  var currentStep = getCurrentStep();
+
+  if (currentStep) {
+    var step = currentStep;
     var compId = 'comparator-' + step.index;
     var comp = document.getElementById(compId);
     if (comp) {
@@ -572,7 +689,7 @@ function updateComparatorStates() {
     }
   }
 
-  for (var i = 0; i <= appState.currentStepIndex; i++) {
+  for (var i = 0; i < appState.currentStepIndex; i++) {
     var step = appState.steps[i];
     var compId = 'comparator-' + step.index;
     var comp = document.getElementById(compId);
@@ -600,7 +717,7 @@ function handleBuildSteps() {
   appState.currentStepIndex = -1;
   appState.processedCount = 0;
   appState.isBuilt = true;
-  appState.currentActionText = 'Comparator passes generated. Step through them or autoplay the full trace.';
+  appState.currentActionText = 'Built ' + appState.steps.length + ' comparator steps across ' + generateBitonicNetwork(appState.inputSize).stages.length + ' passes. Step through them or press Play.';
   updateActionText();
   updateStatus('Built');
   updateProgress();
