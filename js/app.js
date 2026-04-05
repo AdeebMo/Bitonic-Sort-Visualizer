@@ -17,7 +17,7 @@ var appState = {
   isLoaded: false,
   isBuilt: false,
   isPlaying: false,
-  playbackSpeed: 1,
+  playbackSpeed: 3,
   playTimer: null,
   currentActionText: 'Waiting for input.'
 };
@@ -39,13 +39,27 @@ var dom = {
   actionText: null,
   speedValue: null,
   networkVisual: null,
-  historyBody: null
+  historyBody: null,
+  progressFill: null,
+  stepCounter: null
 };
 
 // Helper functions for UI updates
+function getStatusKey(status) {
+  var normalized = status.toLowerCase();
+  if (normalized.indexOf('ready') !== -1) return 'ready';
+  if (normalized.indexOf('built') !== -1) return 'built';
+  if (normalized.indexOf('playing') !== -1) return 'playing';
+  if (normalized.indexOf('stepping') !== -1) return 'stepping';
+  if (normalized.indexOf('paused') !== -1) return 'paused';
+  if (normalized.indexOf('completed') !== -1 || normalized.indexOf('done') !== -1) return 'completed';
+  return 'idle';
+}
+
 function updateStatus(status) {
   if (dom.statusValue) {
     dom.statusValue.textContent = status;
+    dom.statusValue.setAttribute('data-state', getStatusKey(status));
   }
 }
 
@@ -61,9 +75,14 @@ function updateProcessedCount(count) {
   }
 }
 
-function updateValidationMessage(message) {
+function updateValidationMessage(message, tone) {
   if (dom.validationText) {
     dom.validationText.textContent = message;
+    if (tone) {
+      dom.validationText.setAttribute('data-tone', tone);
+    } else {
+      dom.validationText.removeAttribute('data-tone');
+    }
   }
 }
 
@@ -73,11 +92,54 @@ function updateActionText() {
   }
 }
 
+function updateProgress() {
+  var currentStepNumber = appState.currentStepIndex >= 0 ? appState.currentStepIndex + 1 : 0;
+  var totalSteps = appState.steps.length;
+  var percent = totalSteps > 0 ? (currentStepNumber / totalSteps) * 100 : 0;
+
+  if (dom.stepCounter) {
+    dom.stepCounter.textContent = currentStepNumber + ' / ' + totalSteps + ' steps';
+  }
+
+  if (dom.progressFill) {
+    dom.progressFill.style.width = percent + '%';
+  }
+}
+
+function updatePresetSelection() {
+  dom.presetButtons.forEach(function(btn) {
+    btn.classList.toggle('is-selected', btn.getAttribute('data-preset') === appState.selectedPreset);
+  });
+}
+
+function clearPlaybackTimer() {
+  appState.isPlaying = false;
+  if (appState.playTimer) {
+    clearInterval(appState.playTimer);
+    appState.playTimer = null;
+  }
+}
+
+function beginPlaybackLoop() {
+  appState.playTimer = setInterval(function() {
+    if (appState.currentStepIndex >= appState.steps.length - 1) {
+      clearPlaybackTimer();
+      updateStatus('Done');
+      appState.currentActionText = 'All comparator passes complete. The array is fully sorted.';
+      updateActionText();
+      setButtonStates();
+      return;
+    }
+    handleStep();
+  }, 1000 / appState.playbackSpeed);
+}
+
 function setButtonStates() {
   if (dom.buildStepsBtn) dom.buildStepsBtn.disabled = !appState.isLoaded;
-  if (dom.stepBtn) dom.stepBtn.disabled = !appState.isBuilt;
-  if (dom.playBtn) dom.playBtn.disabled = !appState.isBuilt || appState.isPlaying;
+  if (dom.stepBtn) dom.stepBtn.disabled = !appState.isBuilt || appState.isPlaying || appState.currentStepIndex >= appState.steps.length - 1;
+  if (dom.playBtn) dom.playBtn.disabled = !appState.isBuilt || appState.isPlaying || appState.currentStepIndex >= appState.steps.length - 1;
   if (dom.pauseBtn) dom.pauseBtn.disabled = !appState.isPlaying;
+  if (dom.resetBtn) dom.resetBtn.disabled = !appState.isLoaded && !appState.rawInput;
 }
 
 // Input parsing and validation
@@ -90,10 +152,10 @@ function parseInput(input) {
 
   var numbers = [];
   for (var i = 0; i < tokens.length; i++) {
-    var num = parseInt(tokens[i], 10);
-    if (isNaN(num)) {
+    if (!/^-?\d+$/.test(tokens[i])) {
       return { valid: false, message: 'All values must be valid integers.', numbers: [] };
     }
+    var num = parseInt(tokens[i], 10);
     numbers.push(num);
   }
 
@@ -112,13 +174,41 @@ function isPowerOfTwo(n) {
   return n > 0 && (n & (n - 1)) === 0;
 }
 
-function handleInputChange() {
+function handleInputChange(source) {
   var input = dom.customInput.value.trim();
   appState.rawInput = input;
+  clearPlaybackTimer();
+
+  if (source !== 'preset') {
+    appState.selectedPreset = null;
+    updatePresetSelection();
+  }
+
+  if (input === '') {
+    appState.numbersLoaded = [];
+    appState.workingNumbers = [];
+    appState.inputSize = 0;
+    appState.isLoaded = false;
+    appState.isBuilt = false;
+    appState.steps = [];
+    appState.currentStepIndex = -1;
+    appState.processedCount = 0;
+    appState.currentActionText = 'Waiting for input.';
+    updateValidationMessage('Enter a comma-separated list of integers. The list must have a length that is a power of 2.');
+    updateInputSize(0);
+    updateProcessedCount(0);
+    updateActionText();
+    updateStatus('Idle');
+    updateProgress();
+    showNetworkPlaceholder();
+    renderHistory();
+    setButtonStates();
+    return;
+  }
+
   var result = parseInput(input);
   appState.parsedCandidateNumbers = result.numbers;
   appState.validationMessage = result.message;
-  updateValidationMessage(result.message);
 
   if (result.valid) {
     appState.numbersLoaded = result.numbers.slice();
@@ -129,19 +219,33 @@ function handleInputChange() {
     appState.steps = [];
     appState.currentStepIndex = -1;
     appState.processedCount = 0;
-    appState.currentActionText = 'List loaded. Ready to build bitonic steps.';
+    appState.currentActionText = 'Input accepted. Build the comparator passes when you are ready.';
+    updateValidationMessage('Valid input detected. Build steps to generate the network trace.', 'success');
     updateInputSize(appState.inputSize);
     updateProcessedCount(0);
     updateActionText();
     updateStatus('Ready');
+    updateProgress();
     renderNetwork();
+    renderHistory();
   } else {
+    appState.numbersLoaded = [];
+    appState.workingNumbers = [];
+    appState.inputSize = 0;
     appState.isLoaded = false;
     appState.isBuilt = false;
+    appState.steps = [];
+    appState.currentStepIndex = -1;
+    appState.processedCount = 0;
     appState.currentActionText = 'Waiting for valid input.';
+    updateValidationMessage(result.message, 'error');
+    updateInputSize(0);
+    updateProcessedCount(0);
     updateActionText();
     updateStatus('Idle');
+    updateProgress();
     showNetworkPlaceholder();
+    renderHistory();
   }
   setButtonStates();
 }
@@ -183,37 +287,30 @@ function handleSpeedChange() {
   if (dom.speedValue) {
     dom.speedValue.textContent = appState.playbackSpeed + 'x';
   }
+  if (appState.isPlaying) {
+    clearInterval(appState.playTimer);
+    beginPlaybackLoop();
+  }
 }
 
 // Bitonic network generation
 function generateBitonicNetwork(size) {
-  var pairSet = new Set();
-  var comparators = [];
+  var stages = [];
+  var passNumber = 1;
   for (var k = 2; k <= size; k = 2 * k) {
     for (var j = k / 2; j > 0; j = j / 2) {
+      var stageComparators = [];
       for (var i = 0; i < size; i++) {
         var l = i ^ j;
         if (l > i) {
-          var pair = i + ',' + l;
-          if (!pairSet.has(pair)) {
-            pairSet.add(pair);
-            comparators.push([i, l]);
-          }
+          stageComparators.push([i, l]);
         }
       }
+      stages.push({
+        label: 'P' + passNumber++,
+        comparators: stageComparators
+      });
     }
-  }
-
-  var numStages = Math.log2(size);
-  var comparatorsPerStage = Math.ceil(comparators.length / numStages);
-  var stages = [];
-  for (var s = 0; s < numStages; s++) {
-    var start = s * comparatorsPerStage;
-    var end = Math.min(start + comparatorsPerStage, comparators.length);
-    stages.push({
-      label: 'Stage ' + (s + 1),
-      comparators: comparators.slice(start, end)
-    });
   }
 
   return { stages: stages };
@@ -244,6 +341,7 @@ function generateSteps(numbers) {
           }
           var after = working.slice();
           var dir = (i & k) == 0 ? 'ASC' : 'DESC';
+          var leadingValue = dir === 'ASC' ? 'smaller' : 'larger';
           steps.push({
             index: stepIndex++,
             i: i,
@@ -253,7 +351,7 @@ function generateSteps(numbers) {
             afterValues: after,
             swapped: shouldSwap,
             actionText: shouldSwap ?
-              'Swapped ' + before[i] + ' and ' + before[l] + ' because ' + dir.toLowerCase() + ' order requires the smaller value first.' :
+              'Swapped ' + before[i] + ' and ' + before[l] + ' because ' + dir.toLowerCase() + ' order requires the ' + leadingValue + ' value first.' :
               'No swap needed. Values already satisfy ' + dir.toLowerCase() + ' order.'
           });
         }
@@ -271,14 +369,19 @@ function renderNetwork() {
   }
 
   var network = generateBitonicNetwork(appState.inputSize);
-  var svg = createSvgElement('svg', { class: 'network-svg', width: '100%', height: '400' });
-
-  var wireSpacing = 30;
-  var stageSpacing = 80;
-  var labelWidth = 40;
-  var stageLabelHeight = 20;
-  var totalWidth = labelWidth + network.stages.length * stageSpacing + 80;
-  var totalHeight = stageLabelHeight + appState.inputSize * wireSpacing;
+  var wireSpacing = Math.max(34, Math.floor(420 / appState.inputSize));
+  var stageSpacing = network.stages.length > 8 ? 84 : 96;
+  var labelWidth = 72;
+  var rightGutter = 96;
+  var stageLabelHeight = 36;
+  var stageStartX = labelWidth + 12;
+  var totalWidth = stageStartX + network.stages.length * stageSpacing + rightGutter;
+  var totalHeight = stageLabelHeight + appState.inputSize * wireSpacing + 24;
+  var svg = createSvgElement('svg', {
+    class: 'network-svg',
+    width: totalWidth,
+    height: totalHeight
+  });
 
   svg.setAttribute('viewBox', '0 0 ' + totalWidth + ' ' + totalHeight);
 
@@ -287,17 +390,17 @@ function renderNetwork() {
     var y = stageLabelHeight + i * wireSpacing + wireSpacing / 2;
     var line = createSvgElement('line', {
       class: 'network-wire',
-      x1: labelWidth,
+      x1: stageStartX,
       y1: y,
-      x2: totalWidth - 80,
+      x2: totalWidth - rightGutter,
       y2: y
     });
     svg.appendChild(line);
 
     var text = createSvgElement('text', {
       class: 'network-wire-label',
-      x: 35,
-      y: y + 5,
+      x: labelWidth - 6,
+      y: y + 4,
       textContent: i
     });
     svg.appendChild(text);
@@ -305,34 +408,36 @@ function renderNetwork() {
     var valueText = createSvgElement('text', {
       class: 'network-value-text',
       id: 'value-text-' + i,
-      x: totalWidth - 60,
-      y: y + 5,
+      x: totalWidth - 18,
+      y: y + 4,
       textContent: appState.workingNumbers[i]
     });
     svg.appendChild(valueText);
   }
 
   // Draw stages with comparators
-  var xOffset = labelWidth;
+  var xOffset = stageStartX;
   var comparatorIndex = 0;
   network.stages.forEach(function(stage) {
-    var text = createSvgElement('text', {
-      class: 'network-stage-label',
-      x: xOffset + stageSpacing / 2,
-      y: 15,
-      textContent: stage.label
-    });
-    svg.appendChild(text);
-
+    var stageCenter = xOffset + stageSpacing / 2;
     var rect = createSvgElement('rect', {
       class: 'network-stage-band',
       x: xOffset,
-      y: 0,
+      y: 8,
       width: stageSpacing,
-      height: totalHeight,
-      fill: 'rgba(255,255,255,0.05)'
+      height: totalHeight - 16,
+      rx: 20,
+      ry: 20
     });
     svg.appendChild(rect);
+
+    var text = createSvgElement('text', {
+      class: 'network-stage-label',
+      x: stageCenter,
+      y: 24,
+      textContent: stage.label
+    });
+    svg.appendChild(text);
 
     stage.comparators.forEach(function(comp) {
       var y1 = stageLabelHeight + comp[0] * wireSpacing + wireSpacing / 2;
@@ -342,26 +447,26 @@ function renderNetwork() {
 
       var line = createSvgElement('line', {
         class: 'network-comparator-line',
-        x1: xOffset + stageSpacing / 2,
+        x1: stageCenter,
         y1: y1,
-        x2: xOffset + stageSpacing / 2,
+        x2: stageCenter,
         y2: y2
       });
       g.appendChild(line);
 
       var circle1 = createSvgElement('circle', {
         class: 'network-comparator-node',
-        cx: xOffset + stageSpacing / 2,
+        cx: stageCenter,
         cy: y1,
-        r: 3
+        r: 4
       });
       g.appendChild(circle1);
 
       var circle2 = createSvgElement('circle', {
         class: 'network-comparator-node',
-        cx: xOffset + stageSpacing / 2,
+        cx: stageCenter,
         cy: y2,
-        r: 3
+        r: 4
       });
       g.appendChild(circle2);
 
@@ -418,8 +523,8 @@ function renderValues() {
 function showNetworkPlaceholder() {
   clearNetworkVisual();
   var placeholder = document.createElement('div');
-  placeholder.className = 'network-placeholder';
-  placeholder.textContent = 'Enter a valid list to visualize the bitonic sorting network.';
+  placeholder.className = 'placeholder-box';
+  placeholder.textContent = 'Load a valid power-of-two list to generate the comparator network and inspect each pass.';
   dom.networkVisual.appendChild(placeholder);
 }
 
@@ -428,16 +533,26 @@ function renderHistory() {
   dom.historyBody.innerHTML = '';
   if (appState.steps.length === 0) {
     var row = document.createElement('tr');
-    row.innerHTML = '<td colspan="4">No steps yet. Build steps to see history.</td>';
+    row.innerHTML = '<td colspan="6" class="cell-muted">No comparator passes yet. Build steps to populate the trace.</td>';
     dom.historyBody.appendChild(row);
     return;
   }
   appState.steps.forEach(function(step, index) {
     var row = document.createElement('tr');
+    var comparedValues = step.beforeValues[step.i] + ' vs ' + step.beforeValues[step.j];
+    var actionLabel = step.swapped ? 'Compare + swap' : 'Compare only';
+    var resultLabel = step.swapped ? 'Swapped' : 'Kept order';
+    var resultClass = step.swapped ? 'swap-yes' : 'swap-no';
     if (index === appState.currentStepIndex) {
       row.className = 'current-step';
     }
-    row.innerHTML = '<td>' + (index + 1) + '</td><td>(' + step.i + ', ' + step.j + ')</td><td>' + step.dir + '</td><td>' + step.actionText + '</td>';
+    row.innerHTML =
+      '<td>' + (index + 1) + '</td>' +
+      '<td>(' + step.i + ', ' + step.j + ')</td>' +
+      '<td>' + comparedValues + '</td>' +
+      '<td>' + step.dir + '</td>' +
+      '<td>' + actionLabel + '</td>' +
+      '<td><span class="result-pill ' + resultClass + '">' + resultLabel + '</span></td>';
     dom.historyBody.appendChild(row);
   });
 }
@@ -471,20 +586,24 @@ function updateComparatorStates() {
 function handlePresetClick(preset) {
   var list = generatePreset(preset);
   if (dom.customInput) {
+    appState.selectedPreset = preset;
+    updatePresetSelection();
     dom.customInput.value = list;
-    handleInputChange();
+    handleInputChange('preset');
   }
 }
 
 function handleBuildSteps() {
+  clearPlaybackTimer();
   appState.steps = generateSteps(appState.numbersLoaded);
   appState.workingNumbers = appState.numbersLoaded.slice();
   appState.currentStepIndex = -1;
   appState.processedCount = 0;
   appState.isBuilt = true;
-  appState.currentActionText = 'Steps built. Ready to step through or play.';
+  appState.currentActionText = 'Comparator passes generated. Step through them or autoplay the full trace.';
   updateActionText();
   updateStatus('Built');
+  updateProgress();
   renderNetwork();
   renderHistory();
   setButtonStates();
@@ -499,30 +618,30 @@ function handleStep() {
   appState.currentActionText = step.actionText;
   updateActionText();
   updateProcessedCount(appState.processedCount);
-  updateStatus('Stepping (' + (appState.currentStepIndex + 1) + '/' + appState.steps.length + ')');
+  updateStatus(appState.isPlaying ? 'Playing' : 'Stepping');
+  updateProgress();
   renderNetwork();
   renderHistory();
+  if (appState.currentStepIndex === appState.steps.length - 1) {
+    if (appState.isPlaying) {
+      clearPlaybackTimer();
+    }
+    updateStatus('Done');
+  }
   setButtonStates();
 }
 
 function handlePlay() {
+  if (!appState.isBuilt || appState.currentStepIndex >= appState.steps.length - 1) return;
+  clearPlaybackTimer();
   appState.isPlaying = true;
   updateStatus('Playing');
   setButtonStates();
-  appState.playTimer = setInterval(function() {
-    if (appState.currentStepIndex >= appState.steps.length - 1) {
-      handlePause();
-      updateStatus('Completed');
-      return;
-    }
-    handleStep();
-  }, 1000 / appState.playbackSpeed);
+  beginPlaybackLoop();
 }
 
 function handlePause() {
-  appState.isPlaying = false;
-  clearInterval(appState.playTimer);
-  appState.playTimer = null;
+  clearPlaybackTimer();
   updateStatus('Paused');
   setButtonStates();
 }
@@ -539,12 +658,9 @@ function handleReset() {
   appState.processedCount = 0;
   appState.isLoaded = false;
   appState.isBuilt = false;
-  appState.isPlaying = false;
   appState.currentActionText = 'Waiting for input.';
-  if (appState.playTimer) {
-    clearInterval(appState.playTimer);
-    appState.playTimer = null;
-  }
+  clearPlaybackTimer();
+  updatePresetSelection();
 
   if (dom.customInput) dom.customInput.value = '';
   updateValidationMessage('Enter a comma-separated list of integers. The list must have a length that is a power of 2.');
@@ -552,6 +668,7 @@ function handleReset() {
   updateInputSize(0);
   updateProcessedCount(0);
   updateActionText();
+  updateProgress();
   showNetworkPlaceholder();
   renderHistory();
   setButtonStates();
@@ -561,7 +678,7 @@ function handleReset() {
 document.addEventListener('DOMContentLoaded', function () {
   dom.customInput = document.getElementById('custom-input');
   dom.validationText = document.getElementById('input-help');
-  dom.presetButtons = document.querySelectorAll('.button-secondary');
+  dom.presetButtons = document.querySelectorAll('[data-preset]');
   dom.speedRange = document.getElementById('speed-range');
   dom.buildStepsBtn = document.getElementById('build-steps-btn');
   dom.stepBtn = document.getElementById('step-btn');
@@ -569,30 +686,34 @@ document.addEventListener('DOMContentLoaded', function () {
   dom.pauseBtn = document.getElementById('pause-btn');
   dom.resetBtn = document.getElementById('reset-btn');
   dom.statusValue = document.getElementById('status-value');
-  dom.inputSizeValue = document.querySelector('.status-item:nth-child(2) .status-value');
-  dom.processedValue = document.querySelector('.status-item:nth-child(3) .status-value');
+  dom.inputSizeValue = document.getElementById('input-size-value');
+  dom.processedValue = document.getElementById('processed-value');
   dom.actionText = document.getElementById('action-text');
   dom.speedValue = document.getElementById('speed-value');
   dom.networkVisual = document.querySelector('.network-visual');
   dom.historyBody = document.getElementById('history-body');
+  dom.progressFill = document.getElementById('progress-fill');
+  dom.stepCounter = document.getElementById('step-counter');
 
   updateStatus('Idle');
   updateInputSize(0);
   updateProcessedCount(0);
   updateActionText();
+  updateProgress();
   showNetworkPlaceholder();
   renderHistory();
   setButtonStates();
   handleSpeedChange();
 
   if (dom.customInput) {
-    dom.customInput.addEventListener('input', handleInputChange);
+    dom.customInput.addEventListener('input', function() {
+      handleInputChange();
+    });
   }
 
-  dom.presetButtons.forEach(function(btn, index) {
-    var presets = ['random', 'sorted', 'reverse', 'zero-one', 'worst'];
+  dom.presetButtons.forEach(function(btn) {
     btn.addEventListener('click', function() {
-      handlePresetClick(presets[index]);
+      handlePresetClick(btn.getAttribute('data-preset'));
     });
   });
 

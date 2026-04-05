@@ -3,180 +3,258 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bitonic Sorting Network Teaching Tool</title>
+  <title>Bitonic Studio | Sorting Network Lab</title>
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-  <div class="container">
-    <header class="page-header">
-      <h1 class="page-title">Bitonic Sorting Network Teaching Tool</h1>
-      <p class="page-subtitle">A clean, step-by-step visual tool for learning data-oblivious sorting networks and bitonic merge behavior.</p>
-    </header>
+  <div class="page-shell">
+    <div class="container">
+      <header class="hero">
+        <div class="hero-copy">
+          <div class="eyebrow-row">
+            <span class="brand-badge">Bitonic Studio</span>
+            <span class="eyebrow-tag">Interactive sorting network lab</span>
+          </div>
 
-    <section class="intro-grid" aria-label="Algorithm overview">
-      <div class="feature-card">
-        <h3 class="panel-heading">Overview</h3>
-        <div class="card-body">
-          <p>Bitonic sort is a sorting network: a fixed sequence of compare-and-swap operations that does not depend on the actual input values. It works by building bitonic sequences, then merging them with the same network pattern for every array of the same size.</p>
-          <ul class="mini-list">
-            <li><strong>Fixed network:</strong> comparator positions are defined before runtime.</li>
-            <li><strong>Bitonic sequence:</strong> a subsequence that rises then falls, or can be rotated to that shape.</li>
-            <li><strong>Data-oblivious:</strong> the same comparator structure works for all inputs of a given length.</li>
-          </ul>
+          <h1 class="page-title">See bitonic sort as a system, not a black box.</h1>
+          <p class="page-subtitle">
+            A clean visual workspace for understanding how fixed compare-and-swap passes build, merge,
+            and sort bitonic sequences. Load an input, build the network, then inspect every decision.
+          </p>
+
+          <div class="hero-chip-row" aria-label="Highlights">
+            <span class="hero-chip">Data-oblivious logic</span>
+            <span class="hero-chip">Comparator-level playback</span>
+            <span class="hero-chip">Step history and pass tracking</span>
+          </div>
         </div>
-      </div>
 
-      <div class="feature-card">
-        <h3 class="panel-heading">Explanation</h3>
-        <div class="card-body">
-          <p>A bitonic sequence is built from two sorted halves: one ascending and one descending. Bitonic sort recursively creates these halves so that the combined block forms a bitonic pattern before merge.</p>
-          <p>Bitonic merge then compares elements at fixed distances across the midpoint and moves larger values one way and smaller values the other. Every compare-exchange step is predetermined, which is why this method is useful for teaching parallel network behavior.</p>
-          <ol class="mini-list">
-            <li><strong>Build:</strong> sort the first half upward and the second half downward.</li>
-            <li><strong>Merge:</strong> compare mirrored positions across the midpoint in the target direction.</li>
-            <li><strong>Repeat:</strong> recursively merge smaller bitonic segments until the block is ordered.</li>
-          </ol>
+        <div class="hero-panel">
+          <div class="hero-panel-header">
+            <span class="panel-kicker">Why this matters</span>
+            <h2 class="hero-panel-title">Made for teaching, demos, and algorithm intuition.</h2>
+          </div>
+
+          <div class="hero-stat-grid">
+            <article class="hero-stat">
+              <span class="hero-stat-label">Network type</span>
+              <strong class="hero-stat-value">Fixed comparator graph</strong>
+              <p class="hero-stat-copy">The same wiring pattern runs for every input of the same size.</p>
+            </article>
+
+            <article class="hero-stat">
+              <span class="hero-stat-label">Ideal workflow</span>
+              <strong class="hero-stat-value">Build, inspect, replay</strong>
+              <p class="hero-stat-copy">Move from raw numbers to individual compare-exchange steps without losing context.</p>
+            </article>
+
+            <article class="hero-stat">
+              <span class="hero-stat-label">Best fit</span>
+              <strong class="hero-stat-value">Power-of-two inputs</strong>
+              <p class="hero-stat-copy">Perfect for showing how recursive bitonic structure turns into predictable passes.</p>
+            </article>
+          </div>
         </div>
-      </div>
+      </header>
 
-      <div class="feature-card">
-        <h3 class="panel-heading">Pseudocode</h3>
-        <div class="card-body">
-          <pre class="code-block"><code>1  procedure bitonicSort(lo, n, dir)
-2      if n <= 1 return
+      <section class="overview-section" aria-label="Overview">
+        <article class="feature-card overview-card">
+          <span class="feature-kicker">Overview</span>
+          <h3 class="panel-heading">What bitonic sort is doing</h3>
+          <div class="card-body">
+            <p>Bitonic sort is a sorting network: it follows a predetermined pattern of comparators instead of reacting to the values at runtime.</p>
+            <ul class="mini-list">
+              <li><strong>Fixed structure:</strong> the comparator layout is known before the algorithm starts.</li>
+              <li><strong>Bitonic sequences:</strong> each block rises then falls, or can be rotated into that shape.</li>
+              <li><strong>Parallel-friendly:</strong> passes are easier to reason about as a network than as ordinary branching code.</li>
+            </ul>
+          </div>
+        </article>
+      </section>
+
+      <section class="intro-grid" aria-label="Algorithm details">
+
+        <article class="feature-card">
+          <span class="feature-kicker">Flow</span>
+          <h3 class="panel-heading">How the merge pattern works</h3>
+          <div class="card-body">
+            <p>The algorithm first creates opposing sorted halves, then repeatedly compares elements at fixed distances until the whole block is ordered in the target direction.</p>
+            <ol class="mini-list">
+              <li><strong>Build:</strong> sort the left half ascending and the right half descending.</li>
+              <li><strong>Compare:</strong> execute mirrored compare-and-swap pairs across the midpoint.</li>
+              <li><strong>Refine:</strong> recurse into smaller bitonic segments until the final order emerges.</li>
+            </ol>
+          </div>
+        </article>
+
+        <article class="feature-card pseudocode-card">
+          <span class="feature-kicker">Pseudocode</span>
+          <div class="card-body">
+            <pre class="code-block"><code>1  procedure bitonicSort(lo, n, dir)
+2      if n &lt;= 1 return
 3      k := n / 2
 4      bitonicSort(lo, k, ASC)
 5      bitonicSort(lo + k, k, DESC)
 6      bitonicMerge(lo, n, dir)
 
 7  procedure bitonicMerge(lo, n, dir)
-8      if n <= 1 return
+8      if n &lt;= 1 return
 9      k := n / 2
 10     for i from lo to lo + n - k - 1
 11         compareAndSwap(i, i + k, dir)
 12     bitonicMerge(lo, k, dir)
-13     bitonicMerge(lo + k, k, dir)
-
-14 procedure compareAndSwap(i, j, dir)
-15     if (dir = ASC and value[i] > value[j]) or
-16        (dir = DESC and value[i] < value[j]) then
-17         swap value[i] and value[j]</code></pre>
-          <div class="compact-note">dir = ASC or DESC · lo = starting index · n = length of subarray</div>
-        </div>
-      </div>
-
-      <div class="feature-card">
-        <h3 class="panel-heading">Worked example</h3>
-        <div class="card-body">
-          <p>Example input: [3, 7, 4, 8, 6, 2, 1, 5]. The network first arranges two halves in opposite directions, then merges them into order.</p>
-          <div class="phase-list">
-            <div><strong>Input:</strong> [3, 7, 4, 8, 6, 2, 1, 5]</div>
-            <div><strong>Build bitonic halves:</strong> left half upward [3, 4, 7, 8], right half downward [6, 5, 2, 1]</div>
-            <div><strong>Bitonic merge:</strong> compare fixed cross-block pairs and recursively reorder into one sorted block.</div>
-            <div><strong>Final sorted order:</strong> [1, 2, 3, 4, 5, 6, 7, 8]</div>
+13     bitonicMerge(lo + k, k, dir)</code></pre>
+            <div class="compact-note"><code>dir</code> chooses ascending or descending order. <code>lo</code> and <code>n</code> define the active segment.</div>
           </div>
-        </div>
-      </div>
-    </section>
+        </article>
 
-    <div class="layout">
-      <aside class="panel" aria-label="Control panel">
-        <h2 class="panel-heading">Controls</h2>
-
-        <div class="control-group">
-          <div>
-            <label class="control-label" for="custom-input">Enter a list with a length that is a power of 2.</label>
-            <input id="custom-input" class="input-field" type="text" placeholder="e.g. 3, 7, 1, 5, 2, 8, 4, 6" aria-describedby="input-help">
-            <small id="input-help" class="help-text">Enter a comma-separated list of integers. The list must have a length that is a power of 2.</small>
-          </div>
-
-          <div>
-            <p class="control-label">Preset examples</p>
-            <div class="button-row">
-              <button type="button" class="button-secondary">Random example</button>
-              <button type="button" class="button-secondary">Already sorted</button>
-              <button type="button" class="button-secondary">Reverse sorted</button>
-              <button type="button" class="button-secondary">0-1 example</button>
-              <button type="button" class="button-secondary">Worst case</button>
+        <article class="feature-card">
+          <span class="feature-kicker">Example</span>
+          <h3 class="panel-heading">One worked sequence</h3>
+          <div class="card-body">
+            <p>Starting from <strong>[3, 7, 4, 8, 6, 2, 1, 5]</strong>, bitonic sort builds opposing halves before running a predictable merge schedule.</p>
+            <div class="phase-list">
+              <div><strong>Input:</strong> [3, 7, 4, 8, 6, 2, 1, 5]</div>
+              <div><strong>Build:</strong> left side trends upward, right side trends downward.</div>
+              <div><strong>Merge:</strong> fixed-distance comparisons move smaller values toward the target side.</div>
+              <div><strong>Finish:</strong> the network resolves to [1, 2, 3, 4, 5, 6, 7, 8].</div>
             </div>
           </div>
+        </article>
+      </section>
 
-          <div style="margin-top: 10px;">
-            <label class="control-label" for="speed-range">Speed</label>
-            <input id="speed-range" type="range" min="1" max="5" value="1">
+      <div class="layout">
+        <aside class="panel control-panel" aria-label="Control panel">
+          <div class="panel-section">
+            <span class="panel-kicker">Workspace</span>
+            <h2 class="panel-title">Configure The Input</h2>
           </div>
 
-          <div>
-            <p class="control-label">Playback controls</p>
-            <div class="button-row">
-              <button id="build-steps-btn" type="button">Build Steps</button>
-              <button id="step-btn" type="button">Step</button>
-              <button id="play-btn" type="button">Play</button>
-              <button id="pause-btn" type="button">Pause</button>
-              <button id="reset-btn" type="button">Reset</button>
-            </div>
+          <div class="control-stack">
+            <section class="control-section">
+              <label class="control-label" for="custom-input">Custom Input</label>
+              <input id="custom-input" class="input-field" type="text" placeholder="e.g. 3, 7, 1, 5, 2, 8, 4, 6" aria-describedby="input-help">
+              <p id="input-help" class="help-text">Enter a comma-separated list of integers. The list must have a length that is a power of 2.</p>
+            </section>
+
+            <section class="control-section">
+              <div class="section-head section-head-stack">
+                <span class="section-kicker">Presets</span>
+                <span class="section-caption">Quick Input Sets</span>
+              </div>
+              <div class="button-row preset-grid">
+                <button type="button" class="button-secondary preset-button" data-preset="random">Random Set</button>
+                <button type="button" class="button-secondary preset-button" data-preset="sorted">Sorted Set</button>
+                <button type="button" class="button-secondary preset-button" data-preset="reverse">Reverse Set</button>
+                <button type="button" class="button-secondary preset-button" data-preset="zero-one">Zero-One Set</button>
+                <button type="button" class="button-secondary preset-button" data-preset="worst">Worst Case</button>
+              </div>
+            </section>
+
+            <section class="control-section">
+              <div class="section-head section-head-inline">
+                <label class="control-label" for="speed-range">Playback Speed</label>
+                <span class="range-chip"><span id="speed-value">3x</span><span>Speed</span></span>
+              </div>
+              <input id="speed-range" type="range" min="1" max="5" value="3">
+            </section>
+
+            <section class="control-section">
+              <div class="section-head section-head-stack">
+                <span class="section-kicker">Actions</span>
+                <span class="section-caption">Build Steps, Step Through, Or Autoplay</span>
+              </div>
+              <div class="button-row playback-grid">
+                <button id="build-steps-btn" type="button">Build Steps</button>
+                <button id="step-btn" type="button" class="button-secondary">Step</button>
+                <button id="play-btn" type="button">Play</button>
+                <button id="pause-btn" type="button" class="button-secondary">Pause</button>
+                <button id="reset-btn" type="button" class="button-secondary">Reset</button>
+              </div>
+            </section>
           </div>
 
-          <div class="status-list">
+          <div class="status-list" aria-label="Session summary">
             <div class="status-item">
               <span class="status-label">Status</span>
-              <span id="status-value" class="status-value">Idle</span>
+              <span id="status-value" class="status-value" data-state="idle">Idle</span>
             </div>
             <div class="status-item">
-              <span class="status-label">Input Size</span>
-              <span class="status-value">8</span>
+              <span class="status-label">Inputs</span>
+              <span id="input-size-value" class="status-value">0</span>
             </div>
             <div class="status-item">
-              <span class="status-label">Processed</span>
-              <span class="status-value">0</span>
+              <span class="status-label">Steps</span>
+              <span id="processed-value" class="status-value">0</span>
             </div>
           </div>
-        </div>
-      </aside>
+        </aside>
 
-      <main>
-        <section class="panel network-area" aria-label="Network visualization">
-          <div class="legend-strip" aria-label="Network legend">
-            <div class="legend-item"><span class="legend-chip legend-chip-primary"></span><span>Inactive Comparator</span></div>
-            <div class="legend-item"><span class="legend-chip legend-chip-secondary"></span><span>Active Comparator</span></div>
-            <div class="legend-item"><span class="legend-chip legend-chip-swap"></span><span>Completed Comparator</span></div>
-            <div class="legend-item"><span class="legend-chip legend-chip-key"></span><span>Compared Values</span></div>
-          </div>
-          <div class="action-strip">
-            <strong>Current action</strong>
-            <span id="action-text">Waiting for input.</span>
-            <div class="speed-display">
-              <span>Speed: <span id="speed-value">3x</span></span>
+        <main class="workspace-main">
+          <section class="panel network-area" aria-label="Network visualization">
+            <div class="panel-header-row">
+              <div>
+                <span class="panel-kicker">Visualizer</span>
+                <h2 class="panel-title">Comparator network</h2>
+              </div>
+              <div class="legend-strip" aria-label="Network legend">
+                <div class="legend-item"><span class="legend-chip legend-chip-primary"></span><span>Queued</span></div>
+                <div class="legend-item"><span class="legend-chip legend-chip-secondary"></span><span>Active pass</span></div>
+                <div class="legend-item"><span class="legend-chip legend-chip-swap"></span><span>Done</span></div>
+                <div class="legend-item"><span class="legend-chip legend-chip-key"></span><span>Compared values</span></div>
+              </div>
             </div>
-          </div>
-          <div class="network-visual">
-            <div class="placeholder-box">Network visualization will appear here.</div>
-          </div>
-        </section>
 
-        <section class="panel panel-list" aria-label="Visualization details">
-          <div class="feature-card history-card">
-            <h3 class="panel-heading">Step History</h3>
-            <div class="history-container">
-              <table class="history-table" id="history-table">
-                <thead>
-                  <tr>
-                    <th>Step</th>
-                    <th>Indices</th>
-                    <th>Values</th>
-                    <th>Direction</th>
-                    <th>Action</th>
-                    <th>Result</th>
-                  </tr>
-                </thead>
-                <tbody id="history-body">
-                  <!-- Steps will be added here -->
-                </tbody>
-              </table>
+            <div class="action-strip">
+              <div class="action-copy">
+                <span class="action-label">Current action</span>
+                <p id="action-text" class="action-text">Waiting for input.</p>
+              </div>
+
+              <div class="action-meta">
+                <div id="step-counter" class="step-counter">0 / 0 steps</div>
+                <div class="progress-track" aria-hidden="true">
+                  <div id="progress-fill" class="progress-fill"></div>
+                </div>
+              </div>
             </div>
-          </div>
-        </section>
-      </main>
+
+            <div class="network-visual">
+              <div class="placeholder-box">Network visualization will appear here once a valid input is loaded.</div>
+            </div>
+          </section>
+
+          <section class="panel panel-list" aria-label="Visualization details">
+            <div class="history-card">
+              <div class="panel-header-row history-header">
+                <div>
+                  <span class="panel-kicker">Trace</span>
+                  <h3 class="panel-title">Step history</h3>
+                </div>
+                <p class="history-copy">Every comparator pass is logged so you can audit what changed and why.</p>
+              </div>
+
+              <div class="history-container">
+                <table class="history-table" id="history-table">
+                  <thead>
+                    <tr>
+                      <th>Step</th>
+                      <th>Indices</th>
+                      <th>Values</th>
+                      <th>Direction</th>
+                      <th>Action</th>
+                      <th>Result</th>
+                    </tr>
+                  </thead>
+                  <tbody id="history-body">
+                    <!-- Steps will be added here -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
     </div>
   </div>
 
