@@ -298,6 +298,53 @@ input[type="range"]::-moz-range-thumb {
   list-style-position: inside;
 }
 
+/* Network visualization styles */
+.network-svg {
+  width: 100%;
+  height: auto;
+  max-height: 400px;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+}
+
+.network-stage-label {
+  font-size: 12px;
+  fill: var(--text-secondary);
+  text-anchor: middle;
+  font-weight: 500;
+}
+
+.network-wire {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.network-wire-label {
+  font-size: 10px;
+  fill: var(--text-secondary);
+  text-anchor: end;
+  font-family: var(--font-mono);
+}
+
+.network-comparator-line {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.network-comparator-node {
+  fill: var(--accent);
+}
+
+.network-stage-band {
+  fill: rgba(255, 255, 255, 0.05);
+  stroke: none;
+}
+
+.network-empty-state {
+  color: var(--muted);
+  font-style: italic;
+}
+
 .mini-list li {
   margin-bottom: 0.75rem;
 }

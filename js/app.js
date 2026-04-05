@@ -35,7 +35,8 @@ var dom = {
   statusValue: null,
   inputSizeValue: null,
   processedValue: null,
-  actionText: null
+  actionText: null,
+  networkVisual: null
 };
 
 // Helper functions for UI updates
@@ -124,13 +125,15 @@ function handleInputChange() {
     appState.processedCount = 0;
     updateInputSize(appState.inputSize);
     updateProcessedCount(0);
-    updateActionText('List loaded. Ready for step generation.');
+    updateActionText('Network loaded for ' + appState.inputSize + ' inputs. Ready to build steps.');
     updateStatus('Ready');
+    renderBitonicNetwork(appState.inputSize);
   } else {
     appState.isLoaded = false;
     appState.isBuilt = false;
     updateStatus('Idle');
     updateActionText('Waiting for valid input.');
+    showNetworkPlaceholder();
   }
   setButtonStates();
 }
@@ -199,7 +202,182 @@ function handleReset() {
   updateInputSize(0);
   updateProcessedCount(0);
   updateActionText('Waiting for input.');
+  showNetworkPlaceholder();
   setButtonStates();
+}
+
+// Bitonic network generation and rendering
+function generateBitonicNetwork(size) {
+  // Generate the fixed Bitonic sorting network structure for a given power-of-two size
+  // Returns { stages: [ { label: 'Stage 1', comparators: [[i1,j1], ...] }, ... ] }
+  var allComparators = [];
+
+  // Recursive function to collect comparators in order
+  function bitonicMerge(lo, n, dir) {
+    if (n > 1) {
+      var m = n / 2;
+      for (var i = lo; i < lo + m; i++) {
+        allComparators.push([i, i + m]);
+      }
+      bitonicMerge(lo, m, dir);
+      bitonicMerge(lo + m, m, dir);
+    }
+  }
+
+  function bitonicSort(lo, n, dir) {
+    if (n > 1) {
+      var k = n / 2;
+      bitonicSort(lo, k, 1); // ASC
+      bitonicSort(lo + k, k, 0); // DESC
+      bitonicMerge(lo, n, dir);
+    }
+  }
+
+  bitonicSort(0, size, 1); // Start with ASC
+
+  // Group comparators into stages: each stage has size/2 comparators
+  var numStages = Math.log2(size);
+  var comparatorsPerStage = size / 2;
+  var stages = [];
+  for (var s = 0; s < numStages; s++) {
+    var start = s * comparatorsPerStage;
+    var end = start + comparatorsPerStage;
+    stages.push({
+      label: 'Stage ' + (s + 1),
+      comparators: allComparators.slice(start, end)
+    });
+  }
+
+  return { stages: stages };
+}
+
+function renderBitonicNetwork(size) {
+  if (size < 2 || (size & (size - 1)) !== 0) return; // Ensure power of 2
+
+  var network = generateBitonicNetwork(size);
+  var svg = createSvgElement('svg', { class: 'network-svg', width: '100%', height: '400' });
+
+  // Layout parameters
+  var wireSpacing = 30;
+  var stageSpacing = 80;
+  var labelWidth = 40;
+  var stageLabelHeight = 20;
+  var totalWidth = labelWidth + network.stages.length * stageSpacing;
+  var totalHeight = stageLabelHeight + size * wireSpacing;
+
+  svg.setAttribute('viewBox', '0 0 ' + totalWidth + ' ' + totalHeight);
+
+  // Draw horizontal wires
+  for (var i = 0; i < size; i++) {
+    var y = stageLabelHeight + i * wireSpacing + wireSpacing / 2;
+    var line = createSvgElement('line', {
+      class: 'network-wire',
+      x1: labelWidth,
+      y1: y,
+      x2: totalWidth,
+      y2: y
+    });
+    svg.appendChild(line);
+
+    // Wire label on the left
+    var text = createSvgElement('text', {
+      class: 'network-wire-label',
+      x: 10,
+      y: y + 5,
+      textContent: i
+    });
+    svg.appendChild(text);
+  }
+
+  // Draw stages
+  var xOffset = labelWidth;
+  network.stages.forEach(function(stage) {
+    // Stage label at the top
+    var text = createSvgElement('text', {
+      class: 'network-stage-label',
+      x: xOffset + stageSpacing / 2,
+      y: 15,
+      textContent: stage.label
+    });
+    svg.appendChild(text);
+
+    // Subtle stage background band
+    var rect = createSvgElement('rect', {
+      class: 'network-stage-band',
+      x: xOffset,
+      y: 0,
+      width: stageSpacing,
+      height: totalHeight,
+      fill: 'rgba(255,255,255,0.05)'
+    });
+    svg.appendChild(rect);
+
+    // Draw comparators for this stage
+    stage.comparators.forEach(function(comp) {
+      var y1 = stageLabelHeight + comp[0] * wireSpacing + wireSpacing / 2;
+      var y2 = stageLabelHeight + comp[1] * wireSpacing + wireSpacing / 2;
+
+      // Vertical comparator line
+      var line = createSvgElement('line', {
+        class: 'network-comparator-line',
+        x1: xOffset + stageSpacing / 2,
+        y1: y1,
+        x2: xOffset + stageSpacing / 2,
+        y2: y2
+      });
+      svg.appendChild(line);
+
+      // Circles at endpoints
+      var circle1 = createSvgElement('circle', {
+        class: 'network-comparator-node',
+        cx: xOffset + stageSpacing / 2,
+        cy: y1,
+        r: 3
+      });
+      svg.appendChild(circle1);
+
+      var circle2 = createSvgElement('circle', {
+        class: 'network-comparator-node',
+        cx: xOffset + stageSpacing / 2,
+        cy: y2,
+        r: 3
+      });
+      svg.appendChild(circle2);
+    });
+
+    xOffset += stageSpacing;
+  });
+
+  clearNetworkVisual();
+  dom.networkVisual.appendChild(svg);
+}
+
+function createSvgElement(tag, attrs) {
+  var el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (var key in attrs) {
+    if (key === 'textContent') {
+      el.textContent = attrs[key];
+    } else {
+      el.setAttribute(key, attrs[key]);
+    }
+  }
+  return el;
+}
+
+function clearNetworkVisual() {
+  if (dom.networkVisual) {
+    dom.networkVisual.innerHTML = '';
+  }
+}
+
+function showNetworkPlaceholder(message) {
+  clearNetworkVisual();
+  var placeholder = document.createElement('div');
+  placeholder.className = 'placeholder-box network-empty-state';
+  placeholder.textContent = message || 'Enter a valid power-of-two list to see the network.';
+  if (dom.networkVisual) {
+    dom.networkVisual.appendChild(placeholder);
+  }
 }
 
 // Initialization
@@ -218,12 +396,14 @@ document.addEventListener('DOMContentLoaded', function () {
   dom.inputSizeValue = document.querySelector('.status-item:nth-child(2) .status-value');
   dom.processedValue = document.querySelector('.status-item:nth-child(3) .status-value');
   dom.actionText = document.querySelector('.action-strip span');
+  dom.networkVisual = document.querySelector('.network-visual');
 
   // Initial state
   updateStatus('Idle');
   updateInputSize(0);
   updateProcessedCount(0);
   updateActionText('Waiting for input.');
+  showNetworkPlaceholder();
   setButtonStates();
 
   // Event listeners
