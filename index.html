@@ -1,0 +1,121 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bitonic Sorting Network Teaching Tool</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="container">
+    <header class="page-header">
+      <h1 class="page-title">Bitonic Sorting Network Teaching Tool</h1>
+      <p class="page-subtitle">A clean, step-by-step visual tool for learning data-oblivious sorting networks and bitonic merge behavior.</p>
+    </header>
+
+    <section class="intro-grid" aria-label="Algorithm overview">
+      <div class="feature-card">
+        <h3 class="panel-heading">Overview</h3>
+        <div class="placeholder-box">High-level concept summaries for bitonic sorting, data-oblivious networks, and why this tool exists.</div>
+      </div>
+
+      <div class="feature-card">
+        <h3 class="panel-heading">Explanation</h3>
+        <div class="placeholder-box">A clear explanation of how the bitonic sorting network works and how to read the visualization.</div>
+      </div>
+
+      <div class="feature-card">
+        <h3 class="panel-heading">Pseudocode</h3>
+        <div class="placeholder-box">The algorithm pseudocode will be shown here with line-by-line teaching support.</div>
+      </div>
+
+      <div class="feature-card">
+        <h3 class="panel-heading">Worked example</h3>
+        <div class="placeholder-box">A simple example run-through that shows how values move through the bitonic network.</div>
+      </div>
+    </section>
+
+    <div class="layout">
+      <aside class="panel" aria-label="Control panel">
+        <h2 class="panel-heading">Controls</h2>
+
+        <div class="control-group">
+          <div>
+            <label class="control-label" for="custom-input">Custom comma-separated input</label>
+            <input id="custom-input" class="input-field" type="text" placeholder="e.g. 3, 7, 1, 5, 2, 8, 4, 6" aria-describedby="input-help">
+            <p id="input-help" class="validation-text">Enter a power-of-two number of values. Validation will appear here.</p>
+          </div>
+
+          <div>
+            <p class="control-label">Preset examples</p>
+            <div class="button-row">
+              <button type="button" class="button-secondary">Random example</button>
+              <button type="button" class="button-secondary">Already sorted</button>
+              <button type="button" class="button-secondary">Reverse sorted</button>
+              <button type="button" class="button-secondary">0-1 example</button>
+              <button type="button" class="button-secondary">Worst case</button>
+            </div>
+          </div>
+
+          <div>
+            <label class="control-label" for="speed-range">Speed</label>
+            <input id="speed-range" type="range" min="1" max="5" value="3">
+          </div>
+
+          <div>
+            <p class="control-label">Playback controls</p>
+            <div class="button-row">
+              <button type="button">Build Steps</button>
+              <button type="button">Step</button>
+              <button type="button">Play</button>
+              <button type="button">Pause</button>
+              <button type="button">Reset</button>
+            </div>
+          </div>
+
+          <div class="status-list">
+            <div class="status-item">
+              <span class="status-label">Status</span>
+              <span id="status-value" class="status-value">ready</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">Input size</span>
+              <span class="status-value">8</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">Comparators processed</span>
+              <span class="status-value">0</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <main>
+        <section class="panel network-area" aria-label="Network visualization">
+          <div class="action-strip">
+            <strong>Current action</strong>
+            <span>Waiting to build network</span>
+          </div>
+          <div class="network-visual">
+            <div class="placeholder-box">Network visualization will appear here.</div>
+          </div>
+        </section>
+
+        <section class="panel panel-list" aria-label="Visualization details">
+          <div class="feature-card">
+            <h3 class="panel-heading">Legend</h3>
+            <div class="placeholder-box">Icons and colors will explain the comparator states.</div>
+          </div>
+
+          <div class="feature-card">
+            <h3 class="panel-heading">History</h3>
+            <div class="placeholder-box">A scrollable table of step history will be shown here.</div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
