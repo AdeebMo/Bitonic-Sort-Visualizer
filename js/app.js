@@ -326,7 +326,6 @@ function handleSpeedChange() {
 function generateBitonicNetwork(size) {
   var stages = [];
   var stepIndex = 0;
-  var passNumber = 1;
   for (var k = 2; k <= size; k = 2 * k) {
     for (var j = k / 2; j > 0; j = j / 2) {
       var stageComparators = [];
@@ -343,7 +342,9 @@ function generateBitonicNetwork(size) {
       }
       stages.push({
         passIndex: stages.length,
-        label: 'P' + passNumber++,
+        label: 'Size ' + k,
+        metaLabel: 'Gap ' + j,
+        descriptor: 'Size ' + k + ' / Gap ' + j,
         gap: j,
         blockSize: k,
         comparators: stageComparators
@@ -379,7 +380,7 @@ function generateSteps(numbers) {
       steps.push({
         index: comp.stepIndex,
         passIndex: stage.passIndex,
-        passLabel: stage.label,
+        passLabel: stage.descriptor,
         gap: stage.gap,
         blockSize: stage.blockSize,
         i: comp.left,
@@ -392,8 +393,8 @@ function generateSteps(numbers) {
         actionLabel: 'Compare for ' + comp.dir,
         resultLabel: shouldSwap ? 'Swapped' : 'Kept Order',
         actionText: shouldSwap ?
-          stage.label + ' - Swap wires ' + comp.left + ' and ' + comp.right + ' (' + pairText + ') for ' + orderLabel + ' order.' :
-          stage.label + ' - Keep wires ' + comp.left + ' and ' + comp.right + ' (' + pairText + ') for ' + orderLabel + ' order.'
+          stage.descriptor + ' - Swap wires ' + comp.left + ' and ' + comp.right + ' (' + pairText + ') for ' + orderLabel + ' order.' :
+          stage.descriptor + ' - Keep wires ' + comp.left + ' and ' + comp.right + ' (' + pairText + ') for ' + orderLabel + ' order.'
       });
     });
   });
@@ -440,9 +441,10 @@ function renderNetwork() {
   var leftRail = 84;
   var stageStartX = leftRail;
   var valuePillWidth = getValuePillWidth(values);
-  var rightRail = valuePillWidth + 34;
-  var wireEndX = stageStartX + stages.length * stageSpacing - 24;
-  var totalWidth = wireEndX + rightRail;
+  var stageAreaEndX = stageStartX + stages.length * stageSpacing;
+  var wireEndX = stageAreaEndX - 18;
+  var valueStartX = stageAreaEndX + 22;
+  var totalWidth = valueStartX + valuePillWidth + 22;
   var stageLabelHeight = 62;
   var totalHeight = stageLabelHeight + appState.inputSize * wireSpacing + 26;
   var svg = createSvgElement('svg', {
@@ -503,7 +505,7 @@ function renderNetwork() {
     var valueRect = createSvgElement('rect', {
       class: 'network-value-pill-bg' + (isCompared ? ' compared' : ''),
       id: 'value-pill-bg-' + i,
-      x: wireEndX + 12,
+      x: valueStartX,
       y: y - 16,
       width: valuePillWidth,
       height: 32,
@@ -515,7 +517,7 @@ function renderNetwork() {
     var valueText = createSvgElement('text', {
       class: 'network-value-pill-text' + (isCompared ? ' compared' : ''),
       id: 'value-text-' + i,
-      x: wireEndX + 12 + valuePillWidth / 2,
+      x: valueStartX + valuePillWidth / 2,
       y: y + 4,
       textContent: values[i]
     });
@@ -527,6 +529,8 @@ function renderNetwork() {
   var xOffset = stageStartX;
   stages.forEach(function(stage) {
     var stageCenter = xOffset + stageSpacing / 2;
+    var stageBandInset = 1;
+    var stageBandWidth = Math.max(12, stageSpacing - 2);
     var lastComparator = stage.comparators[stage.comparators.length - 1];
     var stageLastStep = lastComparator ? lastComparator.stepIndex : -1;
     var stageStateClass = '';
@@ -540,9 +544,9 @@ function renderNetwork() {
 
     var rect = createSvgElement('rect', {
       class: 'network-stage-band' + stageStateClass,
-      x: xOffset,
+      x: xOffset + stageBandInset,
       y: 8,
-      width: stageSpacing,
+      width: stageBandWidth,
       height: totalHeight - 16,
       rx: 20,
       ry: 20
@@ -561,7 +565,7 @@ function renderNetwork() {
       class: 'network-stage-meta',
       x: stageCenter,
       y: 42,
-      textContent: 'Gap ' + stage.gap
+      textContent: stage.metaLabel
     });
     svg.appendChild(meta);
 
@@ -583,6 +587,14 @@ function renderNetwork() {
       });
       g.appendChild(line);
 
+      var pulse1 = createSvgElement('circle', {
+        class: 'network-comparator-pulse',
+        cx: stageCenter,
+        cy: y1,
+        r: 4
+      });
+      g.appendChild(pulse1);
+
       var circle1 = createSvgElement('circle', {
         class: 'network-comparator-node',
         cx: stageCenter,
@@ -590,6 +602,14 @@ function renderNetwork() {
         r: 4
       });
       g.appendChild(circle1);
+
+      var pulse2 = createSvgElement('circle', {
+        class: 'network-comparator-pulse',
+        cx: stageCenter,
+        cy: y2,
+        r: 4
+      });
+      g.appendChild(pulse2);
 
       var circle2 = createSvgElement('circle', {
         class: 'network-comparator-node',

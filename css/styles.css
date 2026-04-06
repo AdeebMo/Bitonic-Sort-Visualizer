@@ -1658,16 +1658,31 @@ input[type="range"]::-moz-range-thumb {
   transform-origin: center;
 }
 
+.network-comparator-pulse {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 1.5;
+  opacity: 0;
+  pointer-events: none;
+  vector-effect: non-scaling-stroke;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
 .network-comparator.active .network-comparator-line {
   stroke: var(--brand-strong);
   stroke-width: 3;
   filter: drop-shadow(0 0 12px rgba(255, 107, 61, 0.28));
 }
 
+.network-comparator.active .network-comparator-pulse {
+  stroke: var(--brand-strong);
+  animation: comparator-ripple 1.2s infinite;
+}
+
 .network-comparator.active .network-comparator-node {
   fill: var(--brand-strong);
   filter: drop-shadow(0 0 12px rgba(255, 107, 61, 0.28));
-  animation: comparator-pulse 1.2s ease-in-out infinite;
 }
 
 .network-comparator.completed .network-comparator-line {
@@ -1678,14 +1693,20 @@ input[type="range"]::-moz-range-thumb {
   fill: var(--success);
 }
 
-@keyframes comparator-pulse {
-  0%,
-  100% {
+@keyframes comparator-ripple {
+  0% {
+    opacity: 0.4;
     transform: scale(1);
   }
 
-  50% {
-    transform: scale(1.08);
+  70% {
+    opacity: 0;
+    transform: scale(3.4);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1);
   }
 }
 
