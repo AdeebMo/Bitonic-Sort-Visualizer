@@ -29,6 +29,7 @@ var dom = {
   presetButtons: [],
   speedRange: null,
   buildStepsBtn: null,
+  stepBackBtn: null,
   stepBtn: null,
   playBtn: null,
   pauseBtn: null,
@@ -125,6 +126,10 @@ function getValuePillWidth(values) {
   return Math.max(64, maxChars * 11 + 28);
 }
 
+function getBuildSummaryText() {
+  return 'Built, Use the controls below to move through the trace.';
+}
+
 function getNetworkVisualEl() {
   if (!dom.networkVisual) {
     dom.networkVisual = document.querySelector('.network-visual');
@@ -168,7 +173,8 @@ function beginPlaybackLoop() {
 }
 
 function setButtonStates() {
-  if (dom.buildStepsBtn) dom.buildStepsBtn.disabled = !appState.isLoaded;
+  if (dom.buildStepsBtn) dom.buildStepsBtn.disabled = !appState.isLoaded || appState.isPlaying;
+  if (dom.stepBackBtn) dom.stepBackBtn.disabled = !appState.isBuilt || appState.isPlaying || appState.currentStepIndex < 0;
   if (dom.stepBtn) dom.stepBtn.disabled = !appState.isBuilt || appState.isPlaying || appState.currentStepIndex >= appState.steps.length - 1;
   if (dom.playBtn) dom.playBtn.disabled = !appState.isBuilt || appState.isPlaying || appState.currentStepIndex >= appState.steps.length - 1;
   if (dom.pauseBtn) dom.pauseBtn.disabled = !appState.isPlaying;
@@ -444,17 +450,17 @@ function renderNetwork() {
 
   var currentStep = getCurrentStep();
   var traceComplete = isTraceComplete();
-  var wireSpacing = Math.max(34, Math.min(48, Math.floor(560 / appState.inputSize)));
-  var stageSpacing = stages.length > 10 ? 86 : stages.length > 7 ? 94 : 104;
-  var leftRail = 84;
+  var wireSpacing = Math.max(30, Math.min(42, Math.floor(500 / appState.inputSize)));
+  var stageSpacing = stages.length > 10 ? 78 : stages.length > 7 ? 86 : 94;
+  var leftRail = 78;
   var stageStartX = leftRail;
   var valuePillWidth = getValuePillWidth(values);
   var stageAreaEndX = stageStartX + stages.length * stageSpacing;
-  var wireEndX = stageAreaEndX - 18;
-  var valueStartX = stageAreaEndX + 22;
-  var totalWidth = valueStartX + valuePillWidth + 22;
-  var stageLabelHeight = 62;
-  var totalHeight = stageLabelHeight + appState.inputSize * wireSpacing + 26;
+  var wireEndX = stageAreaEndX - 16;
+  var valueStartX = stageAreaEndX + 18;
+  var totalWidth = valueStartX + valuePillWidth + 18;
+  var stageLabelHeight = 46;
+  var totalHeight = stageLabelHeight + appState.inputSize * wireSpacing + 12;
   var svg = createSvgElement('svg', {
     class: 'network-svg',
     width: totalWidth,
@@ -472,7 +478,7 @@ function renderNetwork() {
       x: stageStartX - 10,
       y: y - (wireSpacing / 2) + 6,
       width: wireEndX - stageStartX + 20,
-      height: wireSpacing - 12,
+      height: wireSpacing - 10,
       rx: 14,
       ry: 14
     });
@@ -503,7 +509,7 @@ function renderNetwork() {
     var text = createSvgElement('text', {
       class: 'network-index-pill-text',
       x: 38,
-      y: y + 4,
+      y: y + 3,
       textContent: i
     });
     labelGroup.appendChild(text);
@@ -514,11 +520,11 @@ function renderNetwork() {
       class: 'network-value-pill-bg' + (isCompared ? ' compared' : ''),
       id: 'value-pill-bg-' + i,
       x: valueStartX,
-      y: y - 16,
+      y: y - 15,
       width: valuePillWidth,
-      height: 32,
-      rx: 16,
-      ry: 16
+      height: 30,
+      rx: 15,
+      ry: 15
     });
     valueGroup.appendChild(valueRect);
 
@@ -526,7 +532,7 @@ function renderNetwork() {
       class: 'network-value-pill-text' + (isCompared ? ' compared' : ''),
       id: 'value-text-' + i,
       x: valueStartX + valuePillWidth / 2,
-      y: y + 4,
+      y: y + 3,
       textContent: values[i]
     });
     valueGroup.appendChild(valueText);
@@ -557,7 +563,7 @@ function renderNetwork() {
       x: xOffset + stageBandInset,
       y: 8,
       width: stageBandWidth,
-      height: totalHeight - 16,
+      height: totalHeight - 14,
       rx: 20,
       ry: 20
     });
@@ -566,7 +572,7 @@ function renderNetwork() {
     var text = createSvgElement('text', {
       class: 'network-stage-label',
       x: stageCenter,
-      y: 26,
+      y: 28,
       textContent: stage.label
     });
     svg.appendChild(text);
@@ -574,7 +580,7 @@ function renderNetwork() {
     var meta = createSvgElement('text', {
       class: 'network-stage-meta',
       x: stageCenter,
-      y: 42,
+      y: 40,
       textContent: stage.metaLabel
     });
     svg.appendChild(meta);
@@ -781,7 +787,7 @@ function handleBuildSteps() {
   appState.currentStepIndex = -1;
   appState.processedCount = 0;
   appState.isBuilt = true;
-  appState.currentActionText = 'Built ' + appState.steps.length + ' comparator steps across ' + generateBitonicNetwork(appState.inputSize).stages.length + ' passes. Step through them or press Play.';
+  appState.currentActionText = getBuildSummaryText();
   updateActionText();
   updateStatus('Built');
   updateProgress();
@@ -809,6 +815,33 @@ function handleStep() {
     }
     updateStatus('Done');
   }
+  setButtonStates();
+}
+
+function handleStepBack() {
+  if (!appState.isBuilt || appState.currentStepIndex < 0) return;
+
+  clearPlaybackTimer();
+  appState.currentStepIndex--;
+
+  if (appState.currentStepIndex >= 0) {
+    var step = appState.steps[appState.currentStepIndex];
+    appState.workingNumbers = step.afterValues.slice();
+    appState.processedCount = appState.currentStepIndex + 1;
+    appState.currentActionText = step.actionText;
+    updateStatus('Stepping');
+  } else {
+    appState.workingNumbers = appState.numbersLoaded.slice();
+    appState.processedCount = 0;
+    appState.currentActionText = getBuildSummaryText();
+    updateStatus('Built');
+  }
+
+  updateActionText();
+  updateProcessedCount(appState.processedCount);
+  updateProgress();
+  renderNetwork();
+  renderHistory();
   setButtonStates();
 }
 
@@ -862,6 +895,7 @@ document.addEventListener('DOMContentLoaded', function () {
   dom.presetButtons = document.querySelectorAll('[data-preset]');
   dom.speedRange = document.getElementById('speed-range');
   dom.buildStepsBtn = document.getElementById('build-steps-btn');
+  dom.stepBackBtn = document.getElementById('step-back-btn');
   dom.stepBtn = document.getElementById('step-btn');
   dom.playBtn = document.getElementById('play-btn');
   dom.pauseBtn = document.getElementById('pause-btn');
@@ -904,6 +938,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
   if (dom.buildStepsBtn) {
     dom.buildStepsBtn.addEventListener('click', handleBuildSteps);
+  }
+
+  if (dom.stepBackBtn) {
+    dom.stepBackBtn.addEventListener('click', handleStepBack);
   }
 
   if (dom.stepBtn) {

@@ -140,7 +140,6 @@
             <section class="control-section">
               <div class="section-head section-head-stack">
                 <span class="section-kicker">Presets</span>
-                <span class="section-caption">Quick Input Sets</span>
               </div>
               <div class="button-row preset-grid">
                 <button type="button" class="button-secondary preset-button" data-preset="random">Random Set</button>
@@ -159,19 +158,6 @@
               <input id="speed-range" type="range" min="1" max="5" value="3">
             </section>
 
-            <section class="control-section">
-              <div class="section-head section-head-stack">
-                <span class="section-kicker">Actions</span>
-                <span class="section-caption">Build Steps, Step Through, Or Autoplay</span>
-              </div>
-              <div class="button-row playback-grid">
-                <button id="build-steps-btn" type="button">Build Steps</button>
-                <button id="step-btn" type="button" class="button-secondary">Step</button>
-                <button id="play-btn" type="button">Play</button>
-                <button id="pause-btn" type="button" class="button-secondary">Pause</button>
-                <button id="reset-btn" type="button" class="button-secondary">Reset</button>
-              </div>
-            </section>
           </div>
 
           <div class="status-list" aria-label="Session summary">
@@ -221,6 +207,71 @@
 
             <div class="network-visual">
               <div class="placeholder-box">Network visualization will appear here once a valid input is loaded.</div>
+            </div>
+
+            <div class="transport-strip" aria-label="Playback controls">
+              <button id="build-steps-btn" type="button" class="transport-button transport-button-primary transport-button-build" title="Build steps">
+                <span class="transport-button-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                    <path d="M6 6h4v4H6z"></path>
+                    <path d="M14 6h4v4h-4z"></path>
+                    <path d="M10 8h4"></path>
+                    <path d="M8 10v4"></path>
+                    <path d="M16 10v4"></path>
+                    <path d="M6 14h4v4H6z"></path>
+                    <path d="M14 14h4v4h-4z"></path>
+                    <path d="M10 16h4"></path>
+                  </svg>
+                </span>
+                <span class="transport-button-text">Build</span>
+              </button>
+
+              <div class="transport-controls">
+                <button id="step-back-btn" type="button" class="transport-button transport-button-secondary transport-button-icon-only" title="Previous step" aria-label="Previous step">
+                  <span class="transport-button-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                      <path d="M8 6v12"></path>
+                      <path d="M17 7l-6 5 6 5"></path>
+                    </svg>
+                  </span>
+                </button>
+
+                <button id="step-btn" type="button" class="transport-button transport-button-secondary transport-button-icon-only" title="Next step" aria-label="Next step">
+                  <span class="transport-button-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                      <path d="M16 6v12"></path>
+                      <path d="M7 7l6 5-6 5"></path>
+                    </svg>
+                  </span>
+                </button>
+
+                <button id="play-btn" type="button" class="transport-button transport-button-primary transport-button-icon-only" title="Play" aria-label="Play">
+                  <span class="transport-button-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                      <path class="transport-fill" d="M9 7l8 5-8 5z"></path>
+                    </svg>
+                  </span>
+                </button>
+
+                <button id="pause-btn" type="button" class="transport-button transport-button-secondary transport-button-icon-only" title="Pause" aria-label="Pause">
+                  <span class="transport-button-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                      <path d="M9 7v10"></path>
+                      <path d="M15 7v10"></path>
+                    </svg>
+                  </span>
+                </button>
+
+                <button id="reset-btn" type="button" class="transport-button transport-button-secondary transport-button-icon-only" title="Reset" aria-label="Reset">
+                  <span class="transport-button-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                      <path d="M19 8V5h-3"></path>
+                      <path d="M19 5l-3.5 3.5"></path>
+                      <path d="M18 12a6 6 0 1 1-2.05-4.52"></path>
+                    </svg>
+                  </span>
+                </button>
+              </div>
             </div>
           </section>
 
