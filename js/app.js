@@ -332,10 +332,13 @@ function generateBitonicNetwork(size) {
       for (var i = 0; i < size; i++) {
         var l = i ^ j;
         if (l > i) {
+          var direction = (i & k) === 0 ? 'ASC' : 'DESC';
           stageComparators.push({
             left: i,
             right: l,
-            dir: (i & k) === 0 ? 'ASC' : 'DESC',
+            dir: direction,
+            directionLabel: direction === 'ASC' ? 'Ascending' : 'Descending',
+            directionMarker: direction === 'ASC' ? 'up' : 'down',
             stepIndex: stepIndex++
           });
         }
@@ -572,6 +575,8 @@ function renderNetwork() {
     stage.comparators.forEach(function(comp) {
       var y1 = stageLabelHeight + comp.left * wireSpacing + wireSpacing / 2;
       var y2 = stageLabelHeight + comp.right * wireSpacing + wireSpacing / 2;
+      var directionChipX = stageCenter + Math.min(14, Math.max(10, Math.floor(stageSpacing * 0.16)));
+      var directionChipY = (y1 + y2) / 2;
 
       var g = createSvgElement('g', {
         class: 'network-comparator direction-' + comp.dir.toLowerCase(),
@@ -586,6 +591,36 @@ function renderNetwork() {
         y2: y2
       });
       g.appendChild(line);
+
+      var directionChip = createSvgElement('rect', {
+        class: 'network-comparator-direction-bg',
+        x: directionChipX - 8,
+        y: directionChipY - 8,
+        width: 16,
+        height: 16,
+        rx: 8,
+        ry: 8
+      });
+      g.appendChild(directionChip);
+
+      var directionPath = comp.directionMarker === 'up' ?
+        'M ' + directionChipX + ' ' + (directionChipY + 4) +
+        ' L ' + directionChipX + ' ' + (directionChipY - 3) +
+        ' M ' + (directionChipX - 3) + ' ' + directionChipY +
+        ' L ' + directionChipX + ' ' + (directionChipY - 3) +
+        ' L ' + (directionChipX + 3) + ' ' + directionChipY :
+        'M ' + directionChipX + ' ' + (directionChipY - 4) +
+        ' L ' + directionChipX + ' ' + (directionChipY + 3) +
+        ' M ' + (directionChipX - 3) + ' ' + directionChipY +
+        ' L ' + directionChipX + ' ' + (directionChipY + 3) +
+        ' L ' + (directionChipX + 3) + ' ' + directionChipY;
+
+      var directionGlyph = createSvgElement('path', {
+        class: 'network-comparator-direction-glyph',
+        d: directionPath,
+        'aria-label': comp.directionLabel
+      });
+      g.appendChild(directionGlyph);
 
       var pulse1 = createSvgElement('circle', {
         class: 'network-comparator-pulse',

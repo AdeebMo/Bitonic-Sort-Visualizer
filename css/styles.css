@@ -1658,6 +1658,20 @@ input[type="range"]::-moz-range-thumb {
   transform-origin: center;
 }
 
+.network-comparator-direction-bg {
+  fill: rgba(9, 14, 23, 0.92);
+  stroke: rgba(255, 255, 255, 0.08);
+}
+
+.network-comparator-direction-glyph {
+  fill: none;
+  stroke: var(--ink-faint);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
 .network-comparator-pulse {
   fill: none;
   stroke: transparent;
@@ -1673,6 +1687,10 @@ input[type="range"]::-moz-range-thumb {
   stroke: var(--brand-strong);
   stroke-width: 3;
   filter: drop-shadow(0 0 12px rgba(255, 107, 61, 0.28));
+}
+
+.network-comparator.active .network-comparator-direction-bg {
+  stroke: rgba(255, 107, 61, 0.18);
 }
 
 .network-comparator.active .network-comparator-pulse {
@@ -1691,6 +1709,10 @@ input[type="range"]::-moz-range-thumb {
 
 .network-comparator.completed .network-comparator-node {
   fill: var(--success);
+}
+
+.network-comparator.completed .network-comparator-direction-bg {
+  stroke: rgba(52, 211, 153, 0.18);
 }
 
 @keyframes comparator-ripple {
