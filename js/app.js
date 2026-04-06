@@ -113,6 +113,10 @@ function getCurrentStep() {
   return appState.steps[appState.currentStepIndex];
 }
 
+function isTraceComplete() {
+  return appState.steps.length > 0 && appState.currentStepIndex >= appState.steps.length - 1;
+}
+
 function getValuePillWidth(values) {
   var maxChars = 1;
   for (var i = 0; i < values.length; i++) {
@@ -439,6 +443,7 @@ function renderNetwork() {
   }
 
   var currentStep = getCurrentStep();
+  var traceComplete = isTraceComplete();
   var wireSpacing = Math.max(34, Math.min(48, Math.floor(560 / appState.inputSize)));
   var stageSpacing = stages.length > 10 ? 86 : stages.length > 7 ? 94 : 104;
   var leftRail = 84;
@@ -461,7 +466,7 @@ function renderNetwork() {
   // Draw row backgrounds, horizontal wires, labels, and values
   for (var i = 0; i < appState.inputSize; i++) {
     var y = stageLabelHeight + i * wireSpacing + wireSpacing / 2;
-    var isCompared = currentStep && (currentStep.i === i || currentStep.j === i);
+    var isCompared = !traceComplete && currentStep && (currentStep.i === i || currentStep.j === i);
     var rowBand = createSvgElement('rect', {
       class: 'network-row-band' + (i % 2 === 0 ? '' : ' is-odd'),
       x: stageStartX - 10,
@@ -537,7 +542,9 @@ function renderNetwork() {
     var lastComparator = stage.comparators[stage.comparators.length - 1];
     var stageLastStep = lastComparator ? lastComparator.stepIndex : -1;
     var stageStateClass = '';
-    if (currentStep) {
+    if (traceComplete) {
+      stageStateClass = ' completed';
+    } else if (currentStep) {
       if (currentStep.passIndex === stage.passIndex) {
         stageStateClass = ' active';
       } else if (appState.currentStepIndex > stageLastStep) {
@@ -734,8 +741,9 @@ function updateComparatorStates() {
   });
 
   var currentStep = getCurrentStep();
+  var traceComplete = isTraceComplete();
 
-  if (currentStep) {
+  if (currentStep && !traceComplete) {
     var step = currentStep;
     var compId = 'comparator-' + step.index;
     var comp = document.getElementById(compId);
@@ -744,7 +752,8 @@ function updateComparatorStates() {
     }
   }
 
-  for (var i = 0; i < appState.currentStepIndex; i++) {
+  var completedUntil = traceComplete ? appState.currentStepIndex : appState.currentStepIndex - 1;
+  for (var i = 0; i <= completedUntil; i++) {
     var step = appState.steps[i];
     var compId = 'comparator-' + step.index;
     var comp = document.getElementById(compId);
