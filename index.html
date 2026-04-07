@@ -22,10 +22,10 @@
             numbers, generate the network and examine every swap.
           </p>
 
-          <div class="hero-chip-row" aria-label="Highlights">
-            <span class="hero-chip">Data-oblivious logic</span>
-            <span class="hero-chip">Comparator-level playback</span>
-            <span class="hero-chip">Step history and pass tracking</span>
+          <div class="hero-chip-row" aria-label="Documentation links">
+            <a class="hero-chip hero-chip-link" href="#overview">Overview</a>
+            <a class="hero-chip hero-chip-link" href="#flow">Bitonic Concept</a>
+            <a class="hero-chip hero-chip-link hero-chip-tool" href="#visualizer-tool">Visualizer Tool</a>
           </div>
         </div>
 
@@ -57,7 +57,7 @@
         </div>
       </header>
 
-      <section class="overview-section" aria-label="Overview">
+      <section id="overview" class="overview-section" aria-label="Overview">
         <article class="feature-card overview-card">
           <span class="feature-kicker">Overview</span>
           <h3 class="panel-heading">How bitonic sort works</h3>
@@ -74,7 +74,7 @@
 
       <section class="intro-grid" aria-label="Algorithm details">
 
-        <article class="feature-card">
+        <article id="flow" class="feature-card">
           <span class="feature-kicker">Flow</span>
           <h3 class="panel-heading">Stages of the bitonic sort.</h3>
           <div class="card-body">
@@ -108,7 +108,7 @@
           </div>
         </article>
 
-        <article class="feature-card">
+        <article id="example" class="feature-card">
           <span class="feature-kicker">Example</span>
           <h3 class="panel-heading">One worked sequence</h3>
           <div class="card-body">
@@ -134,12 +134,33 @@
             <section class="control-section">
               <label class="control-label" for="custom-input">Custom Input</label>
               <input id="custom-input" class="input-field" type="text" placeholder="e.g. 3, 7, 1, 5, 2, 8, 4, 6" aria-describedby="input-help">
-              <p id="input-help" class="help-text">Enter numbers separated by commas. Use a list length of 2^n (e.g., 4, 8, 16) so the network can sort them.</p>
+              <p id="input-help" class="help-text" aria-live="polite">Enter numbers separated by commas. Use a list length of 2^n (e.g., 4, 8, 16) so the network can sort them.</p>
             </section>
 
             <section class="control-section">
               <div class="section-head section-head-stack">
                 <span class="section-kicker">Sample Inputs</span>
+              </div>
+              <div class="size-picker">
+                <label class="control-label size-picker-label" for="input-size-select">Input Size</label>
+                <div class="control-select-wrap size-dropdown" id="size-dropdown">
+                  <select id="input-size-select" class="visually-hidden" aria-hidden="true" tabindex="-1">
+                    <option value="4">4 Inputs</option>
+                    <option value="8" selected>8 Inputs</option>
+                  </select>
+                  <button id="size-dropdown-button" type="button" class="control-select-button" aria-haspopup="listbox" aria-expanded="false" aria-controls="size-dropdown-list">
+                    <span id="size-dropdown-value">8 Inputs</span>
+                    <span class="control-select-icon" aria-hidden="true">
+                      <svg viewBox="0 0 16 16" focusable="false" aria-hidden="true">
+                        <path d="M3.5 5.5L8 10l4.5-4.5"></path>
+                      </svg>
+                    </span>
+                  </button>
+                  <div id="size-dropdown-list" class="control-select-menu" role="listbox" aria-label="Sample input size" hidden>
+                    <button type="button" class="control-select-option" role="option" aria-selected="false" data-size-option="4">4 Inputs</button>
+                    <button type="button" class="control-select-option is-selected" role="option" aria-selected="true" data-size-option="8">8 Inputs</button>
+                  </div>
+                </div>
               </div>
               <div class="button-row preset-grid">
                 <button type="button" class="button-secondary preset-button" data-preset="random">Random Set</button>
@@ -177,7 +198,7 @@
         </aside>
 
         <main class="workspace-main">
-          <section class="panel network-area" aria-label="Network visualization">
+          <section id="visualizer-tool" class="panel network-area" aria-label="Network visualization">
             <div class="panel-header-row">
               <div>
                 <span class="panel-kicker">Visualizer</span>
@@ -210,7 +231,7 @@
             </div>
 
             <div class="transport-strip" aria-label="Playback controls">
-              <button id="build-steps-btn" type="button" class="transport-button transport-button-primary transport-button-build" title="Build steps">
+              <button id="build-steps-btn" type="button" class="transport-button transport-button-primary transport-button-build" title="Build the comparator trace" aria-label="Build the comparator trace" data-tooltip="Build the comparator trace">
                 <span class="transport-button-icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
                     <path d="M6 6h4v4H6z"></path>
@@ -223,29 +244,48 @@
                     <path d="M10 16h4"></path>
                   </svg>
                 </span>
-                <span class="transport-button-text">Build</span>
+                <span class="transport-button-text">Build Steps</span>
               </button>
 
               <div class="transport-controls">
-                <button id="step-back-btn" type="button" class="transport-button transport-button-secondary transport-button-icon-only" title="Previous step" aria-label="Previous step">
+                <button id="clear-input-btn" type="button" class="transport-button transport-button-secondary transport-button-icon-only" title="Clear the input and reset the network" aria-label="Clear the input and reset the network" data-tooltip="Clear input">
                   <span class="transport-button-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-                      <path d="M8 6v12"></path>
-                      <path d="M17 7l-6 5 6 5"></path>
+                      <circle cx="12" cy="12" r="8.5"></circle>
+                      <path d="M9 9l6 6"></path>
+                      <path d="M15 9l-6 6"></path>
                     </svg>
                   </span>
                 </button>
 
-                <button id="step-btn" type="button" class="transport-button transport-button-secondary transport-button-icon-only" title="Next step" aria-label="Next step">
+                <button id="restart-run-btn" type="button" class="transport-button transport-button-secondary transport-button-icon-only" title="Restart the current run without clearing the input" aria-label="Restart the current run without clearing the input" data-tooltip="Restart run">
                   <span class="transport-button-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-                      <path d="M16 6v12"></path>
-                      <path d="M7 7l6 5-6 5"></path>
+                      <path d="M4 4v6h6"></path>
+                      <path d="M20 12a8 8 0 1 1-2.34-5.66L10 14"></path>
                     </svg>
                   </span>
                 </button>
 
-                <button id="play-btn" type="button" class="transport-button transport-button-primary transport-button-icon-only" title="Play" aria-label="Play">
+                <button id="step-back-btn" type="button" class="transport-button transport-button-secondary transport-button-icon-only" title="Step back one comparator" aria-label="Step back one comparator" data-tooltip="Step back">
+                  <span class="transport-button-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                      <path d="M14 7l-5 5 5 5"></path>
+                      <path d="M10 12h8"></path>
+                    </svg>
+                  </span>
+                </button>
+
+                <button id="step-btn" type="button" class="transport-button transport-button-secondary transport-button-icon-only" title="Step forward one comparator" aria-label="Step forward one comparator" data-tooltip="Step forward">
+                  <span class="transport-button-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                      <path d="M10 7l5 5-5 5"></path>
+                      <path d="M6 12h8"></path>
+                    </svg>
+                  </span>
+                </button>
+
+                <button id="play-btn" type="button" class="transport-button transport-button-primary transport-button-icon-only" title="Play the trace" aria-label="Play the trace" data-tooltip="Play">
                   <span class="transport-button-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
                       <path class="transport-fill" d="M9 7l8 5-8 5z"></path>
@@ -253,7 +293,7 @@
                   </span>
                 </button>
 
-                <button id="pause-btn" type="button" class="transport-button transport-button-secondary transport-button-icon-only" title="Pause" aria-label="Pause">
+                <button id="pause-btn" type="button" class="transport-button transport-button-secondary transport-button-icon-only" title="Pause the trace" aria-label="Pause the trace" data-tooltip="Pause">
                   <span class="transport-button-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
                       <path d="M9 7v10"></path>
@@ -262,15 +302,6 @@
                   </span>
                 </button>
 
-                <button id="reset-btn" type="button" class="transport-button transport-button-secondary transport-button-icon-only" title="Reset" aria-label="Reset">
-                  <span class="transport-button-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-                      <path d="M19 8V5h-3"></path>
-                      <path d="M19 5l-3.5 3.5"></path>
-                      <path d="M18 12a6 6 0 1 1-2.05-4.52"></path>
-                    </svg>
-                  </span>
-                </button>
               </div>
             </div>
           </section>
@@ -289,12 +320,12 @@
                 <table class="history-table" id="history-table">
                   <thead>
                     <tr>
-                      <th>Step</th>
-                      <th>Indices</th>
-                      <th>Values</th>
-                      <th>Direction</th>
-                      <th>Action</th>
-                      <th>Result</th>
+                      <th class="history-col-step">Step</th>
+                      <th class="history-col-indices">Indices</th>
+                      <th class="history-col-values">Values</th>
+                      <th class="history-col-direction">Direction</th>
+                      <th class="history-col-action">Action</th>
+                      <th class="history-col-result">Result</th>
                     </tr>
                   </thead>
                   <tbody id="history-body">

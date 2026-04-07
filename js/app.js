@@ -9,6 +9,7 @@ var appState = {
   numbersLoaded: [],
   workingNumbers: [],
   inputSize: 0,
+  selectedSize: 8,
   selectedPreset: null,
   validationMessage: '',
   steps: [],
@@ -27,13 +28,20 @@ var dom = {
   customInput: null,
   validationText: null,
   presetButtons: [],
+  sizeSelect: null,
+  sizeDropdown: null,
+  sizeDropdownButton: null,
+  sizeDropdownValue: null,
+  sizeDropdownList: null,
+  sizeDropdownOptions: [],
   speedRange: null,
   buildStepsBtn: null,
+  clearInputBtn: null,
+  restartRunBtn: null,
   stepBackBtn: null,
   stepBtn: null,
   playBtn: null,
   pauseBtn: null,
-  resetBtn: null,
   statusValue: null,
   inputSizeValue: null,
   processedValue: null,
@@ -44,6 +52,9 @@ var dom = {
   progressFill: null,
   stepCounter: null
 };
+
+var DEFAULT_INPUT_HELP = 'Enter numbers separated by commas. Use a list length of 2^n (e.g., 4, 8, 16) so the network can sort them.';
+var SUCCESS_INPUT_HELP = 'Valid input detected. Build steps to generate the network trace.';
 
 // Helper functions for UI updates
 function getStatusKey(status) {
@@ -84,6 +95,7 @@ function updateValidationMessage(message, tone) {
     } else {
       dom.validationText.removeAttribute('data-tone');
     }
+    dom.validationText.setAttribute('role', tone === 'error' ? 'alert' : 'status');
   }
 }
 
@@ -126,8 +138,22 @@ function getValuePillWidth(values) {
   return Math.max(64, maxChars * 11 + 28);
 }
 
+function getStageCount(size) {
+  if (!size) {
+    return 0;
+  }
+  return generateBitonicNetwork(size).stages.length;
+}
+
 function getBuildSummaryText() {
-  return 'Built, Use the controls below to move through the trace.';
+  var stepCount = appState.steps.length;
+  var stageCount = getStageCount(appState.inputSize);
+
+  if (!stepCount || !stageCount) {
+    return 'Build the comparator trace to inspect each stage.';
+  }
+
+  return 'Built ' + stepCount + ' comparator steps across ' + stageCount + ' stages. Use the controls below to move through the trace.';
 }
 
 function getNetworkVisualEl() {
@@ -148,6 +174,40 @@ function updatePresetSelection() {
   dom.presetButtons.forEach(function(btn) {
     btn.classList.toggle('is-selected', btn.getAttribute('data-preset') === appState.selectedPreset);
   });
+}
+
+function syncSizeDropdownUI() {
+  var selectedValue = String(appState.selectedSize || 8);
+
+  if (dom.sizeSelect) {
+    dom.sizeSelect.value = selectedValue;
+  }
+
+  if (dom.sizeDropdownValue) {
+    var selectedOption = dom.sizeSelect ? dom.sizeSelect.querySelector('option[value="' + selectedValue + '"]') : null;
+    dom.sizeDropdownValue.textContent = selectedOption ? selectedOption.textContent : selectedValue + ' Inputs';
+  }
+
+  dom.sizeDropdownOptions.forEach(function(option) {
+    var isSelected = option.getAttribute('data-size-option') === selectedValue;
+    option.classList.toggle('is-selected', isSelected);
+    option.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+  });
+}
+
+function setSizeDropdownOpen(isOpen) {
+  if (!dom.sizeDropdown || !dom.sizeDropdownButton || !dom.sizeDropdownList) {
+    return;
+  }
+
+  dom.sizeDropdown.classList.toggle('is-open', isOpen);
+  dom.sizeDropdownButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+
+  if (isOpen) {
+    dom.sizeDropdownList.hidden = false;
+  } else {
+    dom.sizeDropdownList.hidden = true;
+  }
 }
 
 function clearPlaybackTimer() {
@@ -174,11 +234,12 @@ function beginPlaybackLoop() {
 
 function setButtonStates() {
   if (dom.buildStepsBtn) dom.buildStepsBtn.disabled = !appState.isLoaded || appState.isPlaying;
+  if (dom.clearInputBtn) dom.clearInputBtn.disabled = !appState.rawInput;
+  if (dom.restartRunBtn) dom.restartRunBtn.disabled = !appState.isBuilt || appState.isPlaying;
   if (dom.stepBackBtn) dom.stepBackBtn.disabled = !appState.isBuilt || appState.isPlaying || appState.currentStepIndex < 0;
   if (dom.stepBtn) dom.stepBtn.disabled = !appState.isBuilt || appState.isPlaying || appState.currentStepIndex >= appState.steps.length - 1;
   if (dom.playBtn) dom.playBtn.disabled = !appState.isBuilt || appState.isPlaying || appState.currentStepIndex >= appState.steps.length - 1;
   if (dom.pauseBtn) dom.pauseBtn.disabled = !appState.isPlaying;
-  if (dom.resetBtn) dom.resetBtn.disabled = !appState.isLoaded && !appState.rawInput;
 }
 
 // Input parsing and validation
@@ -192,18 +253,30 @@ function parseInput(input) {
   var numbers = [];
   for (var i = 0; i < tokens.length; i++) {
     if (!/^-?\d+$/.test(tokens[i])) {
-      return { valid: false, message: 'All values must be valid integers.', numbers: [] };
+      return {
+        valid: false,
+        message: 'Please enter whole numbers only. Bitonic sort uses a fixed network, so this visualizer expects power-of-two list lengths.',
+        numbers: []
+      };
     }
     var num = parseInt(tokens[i], 10);
     numbers.push(num);
   }
 
   if (numbers.length < 2) {
-    return { valid: false, message: 'List must contain at least 2 numbers.', numbers: [] };
+    return {
+      valid: false,
+      message: 'Enter at least two numbers. Bitonic sort in this visualizer works on power-of-two lengths such as 2, 4, 8, and 16.',
+      numbers: []
+    };
   }
 
   if (!isPowerOfTwo(numbers.length)) {
-    return { valid: false, message: 'List length must be a power of 2 (e.g., 2, 4, 8, 16).', numbers: [] };
+    return {
+      valid: false,
+      message: 'Bitonic sort uses a fixed wiring pattern, so the list length must be a power of two (2, 4, 8, 16, ...).',
+      numbers: []
+    };
   }
 
   return { valid: true, message: '', numbers: numbers };
@@ -233,7 +306,7 @@ function handleInputChange(source) {
     appState.currentStepIndex = -1;
     appState.processedCount = 0;
     appState.currentActionText = 'Waiting for input.';
-    updateValidationMessage('Enter numbers separated by commas. Use a list length of 2^n (e.g., 4, 8, 16) so the network can sort them.');
+    updateValidationMessage(DEFAULT_INPUT_HELP);
     updateInputSize(0);
     updateProcessedCount(0);
     updateActionText();
@@ -253,13 +326,18 @@ function handleInputChange(source) {
     appState.numbersLoaded = result.numbers.slice();
     appState.workingNumbers = result.numbers.slice();
     appState.inputSize = result.numbers.length;
+    if (dom.sizeSelect && dom.sizeSelect.querySelector('option[value="' + appState.inputSize + '"]')) {
+      dom.sizeSelect.value = String(appState.inputSize);
+      appState.selectedSize = appState.inputSize;
+      syncSizeDropdownUI();
+    }
     appState.isLoaded = true;
     appState.isBuilt = false;
     appState.steps = [];
     appState.currentStepIndex = -1;
     appState.processedCount = 0;
     appState.currentActionText = 'Input accepted. Build the comparator passes when you are ready.';
-    updateValidationMessage('Valid input detected. Build steps to generate the network trace.', 'success');
+    updateValidationMessage(SUCCESS_INPUT_HELP, 'success');
     updateInputSize(appState.inputSize);
     updateProcessedCount(0);
     updateActionText();
@@ -291,7 +369,7 @@ function handleInputChange(source) {
 
 // Preset generation
 function generatePreset(preset) {
-  var size = 8;
+  var size = appState.selectedSize || 8;
   var list = [];
   switch (preset) {
     case 'random':
@@ -315,10 +393,40 @@ function generatePreset(preset) {
       }
       break;
     case 'worst':
-      list = [8, 1, 7, 2, 6, 3, 5, 4];
+      for (var left = 1, right = size; left <= right; left++, right--) {
+        if (left === right) {
+          list.push(right);
+        } else {
+          list.push(right);
+          list.push(left);
+        }
+      }
       break;
   }
   return list.join(', ');
+}
+
+function handleSizeChange() {
+  if (!dom.sizeSelect) {
+    return;
+  }
+
+  appState.selectedSize = parseInt(dom.sizeSelect.value, 10);
+  syncSizeDropdownUI();
+  setSizeDropdownOpen(false);
+
+  if (appState.selectedPreset) {
+    handlePresetClick(appState.selectedPreset);
+  }
+}
+
+function handleSizeOptionSelect(value) {
+  if (!dom.sizeSelect) {
+    return;
+  }
+
+  dom.sizeSelect.value = value;
+  handleSizeChange();
 }
 
 function handleSpeedChange() {
@@ -450,8 +558,8 @@ function renderNetwork() {
 
   var currentStep = getCurrentStep();
   var traceComplete = isTraceComplete();
-  var wireSpacing = Math.max(30, Math.min(42, Math.floor(500 / appState.inputSize)));
-  var stageSpacing = stages.length > 10 ? 78 : stages.length > 7 ? 86 : 94;
+  var wireSpacing = Math.max(22, Math.min(42, Math.floor(440 / appState.inputSize)));
+  var stageSpacing = stages.length > 14 ? 72 : stages.length > 10 ? 78 : stages.length > 7 ? 86 : 94;
   var leftRail = 78;
   var stageStartX = leftRail;
   var valuePillWidth = getValuePillWidth(values);
@@ -720,22 +828,29 @@ function renderHistory() {
     historyBody.appendChild(row);
     return;
   }
+  var traceComplete = isTraceComplete();
   appState.steps.forEach(function(step, index) {
     var row = document.createElement('tr');
     var comparedValues = step.comparedValues;
-    var actionLabel = step.passLabel + ' - ' + step.actionLabel;
     var resultLabel = step.resultLabel;
     var resultClass = step.swapped ? 'swap-yes' : 'swap-no';
-    if (index === appState.currentStepIndex) {
-      row.className = 'current-step';
+    var directionClass = step.dir === 'ASC' ? 'trace-direction-asc' : 'trace-direction-desc';
+    var rowStateClass = 'history-row-upcoming';
+
+    if (!traceComplete && index === appState.currentStepIndex) {
+      rowStateClass = 'history-row-current';
+    } else if ((traceComplete && index <= appState.currentStepIndex) || (!traceComplete && index < appState.currentStepIndex)) {
+      rowStateClass = 'history-row-completed';
     }
+
+    row.className = rowStateClass;
     row.innerHTML =
-      '<td>' + (index + 1) + '</td>' +
-      '<td>(' + step.i + ', ' + step.j + ')</td>' +
-      '<td>' + comparedValues + '</td>' +
-      '<td>' + step.dir + '</td>' +
-      '<td>' + actionLabel + '</td>' +
-      '<td><span class="result-pill ' + resultClass + '">' + resultLabel + '</span></td>';
+      '<td data-label="Step" class="history-cell-step">' + (index + 1) + '</td>' +
+      '<td data-label="Indices" class="history-cell-indices">(' + step.i + ', ' + step.j + ')</td>' +
+      '<td data-label="Values" class="history-cell-values">' + comparedValues + '</td>' +
+      '<td data-label="Direction" class="history-cell-direction"><span class="trace-direction-pill ' + directionClass + '">' + step.dir + '</span></td>' +
+      '<td data-label="Action" class="history-cell-action"><div class="trace-action-stack"><span class="trace-stage-pill">' + step.passLabel + '</span><span class="trace-action-copy">' + step.actionLabel + '</span></div></td>' +
+      '<td data-label="Result" class="history-cell-result"><span class="result-pill ' + resultClass + '">' + resultLabel + '</span></td>';
     historyBody.appendChild(row);
   });
 }
@@ -777,10 +892,14 @@ function handlePresetClick(preset) {
     updatePresetSelection();
     dom.customInput.value = list;
     handleInputChange('preset');
+    if (preset === 'worst' && appState.isLoaded) {
+      handleBuildSteps();
+    }
   }
 }
 
 function handleBuildSteps() {
+  if (!appState.isLoaded) return;
   clearPlaybackTimer();
   appState.steps = generateSteps(appState.numbersLoaded);
   appState.workingNumbers = appState.numbersLoaded.slice();
@@ -788,6 +907,7 @@ function handleBuildSteps() {
   appState.processedCount = 0;
   appState.isBuilt = true;
   appState.currentActionText = getBuildSummaryText();
+  updateProcessedCount(0);
   updateActionText();
   updateStatus('Built');
   updateProgress();
@@ -860,7 +980,26 @@ function handlePause() {
   setButtonStates();
 }
 
-function handleReset() {
+function handleRestartRun() {
+  if (!appState.isBuilt) {
+    return;
+  }
+
+  clearPlaybackTimer();
+  appState.workingNumbers = appState.numbersLoaded.slice();
+  appState.currentStepIndex = -1;
+  appState.processedCount = 0;
+  appState.currentActionText = getBuildSummaryText();
+  updateStatus('Built');
+  updateProcessedCount(0);
+  updateActionText();
+  updateProgress();
+  renderNetwork();
+  renderHistory();
+  setButtonStates();
+}
+
+function handleClearInput() {
   appState.rawInput = '';
   appState.numbersLoaded = [];
   appState.workingNumbers = [];
@@ -877,7 +1016,7 @@ function handleReset() {
   updatePresetSelection();
 
   if (dom.customInput) dom.customInput.value = '';
-  updateValidationMessage('Enter numbers separated by commas. Use a list length of 2^n (e.g., 4, 8, 16) so the network can sort them.');
+  updateValidationMessage(DEFAULT_INPUT_HELP);
   updateStatus('Idle');
   updateInputSize(0);
   updateProcessedCount(0);
@@ -893,13 +1032,20 @@ document.addEventListener('DOMContentLoaded', function () {
   dom.customInput = document.getElementById('custom-input');
   dom.validationText = document.getElementById('input-help');
   dom.presetButtons = document.querySelectorAll('[data-preset]');
+  dom.sizeSelect = document.getElementById('input-size-select');
+  dom.sizeDropdown = document.getElementById('size-dropdown');
+  dom.sizeDropdownButton = document.getElementById('size-dropdown-button');
+  dom.sizeDropdownValue = document.getElementById('size-dropdown-value');
+  dom.sizeDropdownList = document.getElementById('size-dropdown-list');
+  dom.sizeDropdownOptions = document.querySelectorAll('[data-size-option]');
   dom.speedRange = document.getElementById('speed-range');
   dom.buildStepsBtn = document.getElementById('build-steps-btn');
+  dom.clearInputBtn = document.getElementById('clear-input-btn');
+  dom.restartRunBtn = document.getElementById('restart-run-btn');
   dom.stepBackBtn = document.getElementById('step-back-btn');
   dom.stepBtn = document.getElementById('step-btn');
   dom.playBtn = document.getElementById('play-btn');
   dom.pauseBtn = document.getElementById('pause-btn');
-  dom.resetBtn = document.getElementById('reset-btn');
   dom.statusValue = document.getElementById('status-value');
   dom.inputSizeValue = document.getElementById('input-size-value');
   dom.processedValue = document.getElementById('processed-value');
@@ -919,6 +1065,11 @@ document.addEventListener('DOMContentLoaded', function () {
   renderHistory();
   setButtonStates();
   handleSpeedChange();
+  if (dom.sizeSelect) {
+    dom.sizeSelect.value = String(appState.selectedSize);
+  }
+  syncSizeDropdownUI();
+  setSizeDropdownOpen(false);
 
   if (dom.customInput) {
     dom.customInput.addEventListener('input', function() {
@@ -936,8 +1087,45 @@ document.addEventListener('DOMContentLoaded', function () {
     dom.speedRange.addEventListener('input', handleSpeedChange);
   }
 
+  if (dom.sizeSelect) {
+    dom.sizeSelect.addEventListener('change', handleSizeChange);
+  }
+
+  if (dom.sizeDropdownButton) {
+    dom.sizeDropdownButton.addEventListener('click', function() {
+      var isOpen = dom.sizeDropdownButton.getAttribute('aria-expanded') === 'true';
+      setSizeDropdownOpen(!isOpen);
+    });
+  }
+
+  dom.sizeDropdownOptions.forEach(function(option) {
+    option.addEventListener('click', function() {
+      handleSizeOptionSelect(option.getAttribute('data-size-option'));
+    });
+  });
+
+  document.addEventListener('click', function(event) {
+    if (dom.sizeDropdown && !dom.sizeDropdown.contains(event.target)) {
+      setSizeDropdownOpen(false);
+    }
+  });
+
+  document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+      setSizeDropdownOpen(false);
+    }
+  });
+
   if (dom.buildStepsBtn) {
     dom.buildStepsBtn.addEventListener('click', handleBuildSteps);
+  }
+
+  if (dom.clearInputBtn) {
+    dom.clearInputBtn.addEventListener('click', handleClearInput);
+  }
+
+  if (dom.restartRunBtn) {
+    dom.restartRunBtn.addEventListener('click', handleRestartRun);
   }
 
   if (dom.stepBackBtn) {
@@ -956,7 +1144,4 @@ document.addEventListener('DOMContentLoaded', function () {
     dom.pauseBtn.addEventListener('click', handlePause);
   }
 
-  if (dom.resetBtn) {
-    dom.resetBtn.addEventListener('click', handleReset);
-  }
 });
