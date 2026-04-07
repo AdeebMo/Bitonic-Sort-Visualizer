@@ -16,10 +16,10 @@
             <span class="eyebrow-tag">Interactive sorting network lab</span>
           </div>
 
-          <h1 class="page-title">See bitonic sort as a system, not a black box.</h1>
+          <h1 class="page-title">Bitonic sort demystified with clear visuals.</h1>
           <p class="page-subtitle">
-            A clean visual workspace for understanding how fixed compare-and-swap passes build, merge,
-            and sort bitonic sequences. Load an input, build the network, then inspect every decision.
+            Watch how fixed compare-and-swap passes build and merge bitonic sequences. Enter your
+            numbers, generate the network and examine every swap.
           </p>
 
           <div class="hero-chip-row" aria-label="Highlights">
@@ -38,20 +38,20 @@
           <div class="hero-stat-grid">
             <article class="hero-stat">
               <span class="hero-stat-label">Network type</span>
-              <strong class="hero-stat-value">Fixed comparator graph</strong>
-              <p class="hero-stat-copy">The same wiring pattern runs for every input of the same size.</p>
+              <strong class="hero-stat-value">Fixed wiring</strong>
+              <p class="hero-stat-copy">the network layout is independent of your data.</p>
             </article>
 
             <article class="hero-stat">
               <span class="hero-stat-label">Ideal workflow</span>
-              <strong class="hero-stat-value">Build, inspect, replay</strong>
-              <p class="hero-stat-copy">Move from raw numbers to individual compare-exchange steps without losing context.</p>
+              <strong class="hero-stat-value">Build, examine, replay</strong>
+              <p class="hero-stat-copy">go from raw numbers to each compare-swap step without losing context.</p>
             </article>
 
             <article class="hero-stat">
               <span class="hero-stat-label">Best fit</span>
               <strong class="hero-stat-value">Power-of-two inputs</strong>
-              <p class="hero-stat-copy">Perfect for showing how recursive bitonic structure turns into predictable passes.</p>
+              <p class="hero-stat-copy">Use power-of-two inputs to see how bitonic recursion leads to predictable passes.</p>
             </article>
           </div>
         </div>
@@ -60,13 +60,13 @@
       <section class="overview-section" aria-label="Overview">
         <article class="feature-card overview-card">
           <span class="feature-kicker">Overview</span>
-          <h3 class="panel-heading">What bitonic sort is doing</h3>
+          <h3 class="panel-heading">How bitonic sort works</h3>
           <div class="card-body">
-            <p>Bitonic sort is a sorting network: it follows a predetermined pattern of comparators instead of reacting to the values at runtime.</p>
+            <p>Bitonic sort uses a fixed network of comparators rather than runtime decisions. This data-oblivious design makes it ideal for parallel hardware and privacy-preserving applications.</p>
             <ul class="mini-list">
-              <li><strong>Fixed structure:</strong> the comparator layout is known before the algorithm starts.</li>
-              <li><strong>Bitonic sequences:</strong> each block rises then falls, or can be rotated into that shape.</li>
-              <li><strong>Parallel-friendly:</strong> passes are easier to reason about as a network than as ordinary branching code.</li>
+              <li><strong>Fixed structure</strong> &ndash; the comparator layout is set before sorting begins.</li>
+              <li><strong>Bitonic sequences</strong> rise then fall, or can be rotated to that shape.</li>
+              <li><strong>Parallel-friendly</strong> &ndash; network stages can run in parallel, unlike branching code.</li>
             </ul>
           </div>
         </article>
@@ -76,13 +76,13 @@
 
         <article class="feature-card">
           <span class="feature-kicker">Flow</span>
-          <h3 class="panel-heading">How the merge pattern works</h3>
+          <h3 class="panel-heading">Stages of the bitonic sort.</h3>
           <div class="card-body">
             <p>The algorithm first creates opposing sorted halves, then repeatedly compares elements at fixed distances until the whole block is ordered in the target direction.</p>
             <ol class="mini-list">
-              <li><strong>Build:</strong> sort the left half ascending and the right half descending.</li>
-              <li><strong>Compare:</strong> execute mirrored compare-and-swap pairs across the midpoint.</li>
-              <li><strong>Refine:</strong> recurse into smaller bitonic segments until the final order emerges.</li>
+              <li><strong>Build:</strong> sort the first half ascending and the second half descending to form a bitonic sequence.</li>
+              <li><strong>Compare:</strong> mirror each element around the midpoint and swap if out of order.</li>
+              <li><strong>Refine:</strong> recursively merge smaller bitonic blocks until the list is fully sorted.</li>
             </ol>
           </div>
         </article>
@@ -112,12 +112,12 @@
           <span class="feature-kicker">Example</span>
           <h3 class="panel-heading">One worked sequence</h3>
           <div class="card-body">
-            <p>Starting from <strong>[3, 7, 4, 8, 6, 2, 1, 5]</strong>, bitonic sort builds opposing halves before running a predictable merge schedule.</p>
+            <p>Example: with the list <strong>[3,7,4,8,6,2,1,5]</strong>, the algorithm sorts the first four numbers up, the last four down and then merges them through a series of compare-swap passes until <strong>[1,2,3,4,5,6,7,8]</strong> emerges.</p>
             <div class="phase-list">
               <div><strong>Input:</strong> [3, 7, 4, 8, 6, 2, 1, 5]</div>
               <div><strong>Build:</strong> left side trends upward, right side trends downward.</div>
               <div><strong>Merge:</strong> fixed-distance comparisons move smaller values toward the target side.</div>
-              <div><strong>Finish:</strong> the network resolves to [1, 2, 3, 4, 5, 6, 7, 8].</div>
+              <div><strong>Finish:</strong> network resolves to [1, 2, 3, 4, 5, 6, 7, 8].</div>
             </div>
           </div>
         </article>
@@ -134,12 +134,12 @@
             <section class="control-section">
               <label class="control-label" for="custom-input">Custom Input</label>
               <input id="custom-input" class="input-field" type="text" placeholder="e.g. 3, 7, 1, 5, 2, 8, 4, 6" aria-describedby="input-help">
-              <p id="input-help" class="help-text">Enter a comma-separated list of integers. The list must have a length that is a power of 2.</p>
+              <p id="input-help" class="help-text">Enter numbers separated by commas. Use a list length of 2^n (e.g., 4, 8, 16) so the network can sort them.</p>
             </section>
 
             <section class="control-section">
               <div class="section-head section-head-stack">
-                <span class="section-kicker">Presets</span>
+                <span class="section-kicker">Sample Inputs</span>
               </div>
               <div class="button-row preset-grid">
                 <button type="button" class="button-secondary preset-button" data-preset="random">Random Set</button>

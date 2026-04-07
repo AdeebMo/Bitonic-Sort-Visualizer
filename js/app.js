@@ -233,7 +233,7 @@ function handleInputChange(source) {
     appState.currentStepIndex = -1;
     appState.processedCount = 0;
     appState.currentActionText = 'Waiting for input.';
-    updateValidationMessage('Enter a comma-separated list of integers. The list must have a length that is a power of 2.');
+    updateValidationMessage('Enter numbers separated by commas. Use a list length of 2^n (e.g., 4, 8, 16) so the network can sort them.');
     updateInputSize(0);
     updateProcessedCount(0);
     updateActionText();
@@ -877,7 +877,7 @@ function handleReset() {
   updatePresetSelection();
 
   if (dom.customInput) dom.customInput.value = '';
-  updateValidationMessage('Enter a comma-separated list of integers. The list must have a length that is a power of 2.');
+  updateValidationMessage('Enter numbers separated by commas. Use a list length of 2^n (e.g., 4, 8, 16) so the network can sort them.');
   updateStatus('Idle');
   updateInputSize(0);
   updateProcessedCount(0);
