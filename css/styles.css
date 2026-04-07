@@ -2657,18 +2657,18 @@ input[type="range"]::-moz-range-thumb {
   padding: 0 20px;
   border: 2px dotted rgba(255, 214, 195, 0.34);
   border-radius: 20px;
-  background: linear-gradient(180deg, var(--brand), #676767);
+  background: linear-gradient(180deg, rgba(22, 31, 46, 0.56), rgba(11, 16, 27, 0.42));
   box-shadow:
     0 18px 36px rgba(0, 0, 0, 0.34),
-    0 12px 24px rgba(255, 123, 69, 0.24);
-  color: #ed7a16;
+    0 12px 24px rgba(255, 123, 69, 0.14);
+  color: #ffd7c4;
   font-size: 0.96rem;
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.015em;
   text-align: center;
   transform: translateX(-50%);
-  backdrop-filter: blur(16px);
+  backdrop-filter: blur(18px) saturate(130%);
   pointer-events: none;
   display: none;
   align-items: center;
