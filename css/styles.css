@@ -2650,23 +2650,30 @@ input[type="range"]::-moz-range-thumb {
   display: none;
   position: fixed;
   left: 50%;
-  bottom: 14px;
+  bottom: 16px;
   z-index: 70;
-  width: min(calc(100% - 24px), 380px);
-  padding: 12px 16px;
-  border: 1px solid rgba(255, 123, 69, 0.18);
-  border-radius: 18px;
-  background: linear-gradient(180deg, rgba(21, 30, 45, 0.96), rgba(12, 18, 29, 0.98));
-  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.34);
-  color: #ffe0d3;
-  font-size: 0.88rem;
-  font-weight: 600;
-  line-height: 1.4;
-  letter-spacing: -0.01em;
+  width: min(calc(100% - 28px), 340px);
+  min-height: 54px;
+  padding: 0 20px;
+  border: 2px dotted rgba(255, 214, 195, 0.34);
+  border-radius: 20px;
+  background: linear-gradient(180deg, var(--brand), #e86331);
+  box-shadow:
+    0 18px 36px rgba(0, 0, 0, 0.34),
+    0 12px 24px rgba(255, 123, 69, 0.24);
+  color: #fff8f2;
+  font-size: 0.96rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.015em;
   text-align: center;
   transform: translateX(-50%);
   backdrop-filter: blur(16px);
   pointer-events: none;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  text-transform: none;
 }
 
 #overview,
@@ -3133,7 +3140,7 @@ input[type="range"]::-moz-range-thumb {
   }
 
   .mobile-screen-note {
-    display: block;
+    display: flex;
   }
 }
 
